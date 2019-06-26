@@ -27,11 +27,12 @@ WORKDIR "FStar"
 COPY / .
 
 # Remove extra files.
-RUN Invoke-BashCmd rm Dockerfile
-RUN Invoke-BashCmd rm build.sh
-RUN Invoke-BashCmd rm build_helper.sh
-RUN Invoke-BashCmd rm id_rsa
-RUN Invoke-BashCmd rm commitinfofilename.json
+RUN Invoke-BashCmd rm \
+    Dockerfile \
+    build.sh \
+    build_helper.sh \
+    id_rsa \
+    commitinfofilename.json
 WORKDIR ".."
 
 COPY build.sh build.sh
