@@ -131,8 +131,10 @@ let create #a init max =
   in
   let v = rst_frame
     (A.array_resource arr)
+    #_ #_
     (fun v -> P.ptr_resource v <*> A.array_resource arr)
-    ( fun _ -> P.ptr_alloc (Vector 0ul max arr))
+    #_ #(A.array_resource arr) #_ #_
+    (P.ptr_alloc (Vector 0ul max arr))
   in
   let v_view = vector_view v in
   assert(fp_reads_fp v_view.fp v_view.inv); (* TODO: figure out why this ? *)

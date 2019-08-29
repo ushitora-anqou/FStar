@@ -27,6 +27,7 @@ open Steel.RST
 val ptr_alloc
   (#a:Type)
   (init:a)
+  (_:unit)
   : RST (pointer a)
     (empty_resource)
     (fun ptr -> ptr_resource ptr)

@@ -25,7 +25,7 @@ open Steel.RST
 
 (**** Unscoped allocation and deallocation of pointer resources *)
 
-let ptr_alloc #a init =
+let ptr_alloc #a init _ =
   reveal_ptr();
   reveal_rst_inv ();
   reveal_modifies ();
