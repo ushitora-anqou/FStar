@@ -13,22 +13,44 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 *)
-module FStar.Math.Lemmas
+module FStar.Math.Lemmas2
 
 open FStar.Mul
 open FStar.Math.Lib
 
 #reset-options "--initial_fuel 0 --max_fuel 0"
 
-(* Lemma: definition of Euclidean division *)
-val euclidean_div_axiom: a:int -> b:pos -> Lemma
-  ((a - b * (a / b) >= 0 /\ a - b * (a / b) < b))
-let euclidean_div_axiom a b = ()
+(*** Addition/substraction ***)
 
-val lemma_eucl_div_bound: a:int -> b:int -> q:int -> Lemma
-  (requires (a < q))
-  (ensures  (a + q * b < q * (b+1)))
-let lemma_eucl_div_bound a b q = ()
+(* Lemma: addition is associative, hence parenthesizing is meaningless *)
+val paren_add_left: a:int -> b:int -> c:int -> Lemma
+  (a + b + c = (a + b) + c)
+let paren_add_left a b c = ()
+
+(* Lemma: addition is associative, hence parenthesizing is meaningless *)
+val paren_add_right: a:int -> b:int -> c:int -> Lemma
+  (a + b + c = a + (b + c))
+let paren_add_right a b c = ()
+
+val addition_is_associative: a:int -> b:int -> c:int -> Lemma
+  (a + b + c = (a + b) + c /\ a + b + c = a + (b + c))
+let addition_is_associative a b c = ()
+
+val subtraction_is_distributive: a:int -> b:int -> c:int -> Lemma
+  (a - b + c = (a - b) + c /\
+   a - b - c = a - (b + c) /\
+   a - b - c = (a - b) - c /\
+   a + (-b - c) = a - b - c /\
+   a - (b - c) = a - b + c)
+let subtraction_is_distributive a b c = ()
+
+val swap_add_plus_minus: a:int -> b:int -> c:int -> Lemma
+  (a + b - c = (a - c) + b)
+let swap_add_plus_minus a b c = ()
+
+
+
+(*** Multiplication ***)
 
 val lemma_mult_le_left: a:nat -> b:int -> c:int -> Lemma
   (requires (b <= c))
@@ -84,32 +106,6 @@ val paren_mul_right: a:int -> b:int -> c:int -> Lemma
   (a * b * c = a * (b * c))
 let paren_mul_right a b c = ()
 
-(* Lemma: addition is associative, hence parenthesizing is meaningless *)
-val paren_add_left: a:int -> b:int -> c:int -> Lemma
-  (a + b + c = (a + b) + c)
-let paren_add_left a b c = ()
-
-(* Lemma: addition is associative, hence parenthesizing is meaningless *)
-val paren_add_right: a:int -> b:int -> c:int -> Lemma
-  (a + b + c = a + (b + c))
-let paren_add_right a b c = ()
-
-val addition_is_associative: a:int -> b:int -> c:int -> Lemma
-  (a + b + c = (a + b) + c /\ a + b + c = a + (b + c))
-let addition_is_associative a b c = ()
-
-val subtraction_is_distributive: a:int -> b:int -> c:int -> Lemma
-  (a - b + c = (a - b) + c /\
-   a - b - c = a - (b + c) /\
-   a - b - c = (a - b) - c /\
-   a + (-b - c) = a - b - c /\
-   a - (b - c) = a - b + c)
-let subtraction_is_distributive a b c = ()
-
-val swap_add_plus_minus: a:int -> b:int -> c:int -> Lemma
-  (a + b - c = (a - c) + b)
-let swap_add_plus_minus a b c = ()
-
 (* Lemma: multiplication on integers is commutative *)
 val swap_mul: a:int -> b:int -> Lemma (a * b = b * a)
 let swap_mul a b = ()
@@ -131,6 +127,7 @@ let swap_neg_mul a b =
 val mul_binds_tighter: a:int -> b:int -> c:int -> Lemma (a + (b * c) = a + b * c)
 let mul_binds_tighter a b c = ()
 
+
 (* Lemma: multiplication keeps symetric bounds :
     b > 0 && d > 0 && -b < a < b && -d < c < d ==> - b * d < a * c < b * d *)
 #reset-options "--initial_fuel 0 --max_fuel 0 --smtencoding.elim_box true --smtencoding.l_arith_repr native --smtencoding.nl_arith_repr wrapped"
@@ -148,60 +145,34 @@ let nat_times_nat_is_nat a b = ()
 val pos_times_pos_is_pos: a:pos -> b:pos -> Lemma (a * b > 0)
 let pos_times_pos_is_pos a b = ()
 
-val nat_over_pos_is_nat: a:nat -> b:pos -> Lemma (a / b >= 0)
-let nat_over_pos_is_nat a b = ()
+val bounded_multiple_is_zero (x:int) (n:pos) : Lemma
+  (requires -n < x * n /\ x * n < n)
+  (ensures x == 0)
+let bounded_multiple_is_zero (x:int) (n:pos) = ()
 
-#reset-options "--initial_fuel 1 --max_fuel 1"
+val lt_multiple_is_equal (a:nat) (b:nat) (x:int) (n:pos) : Lemma
+  (requires a < n /\ b < n /\ a == b + x * n)
+  (ensures a == b /\ x == 0)
+let lt_multiple_is_equal (a:nat) (b:nat) (x:int) (n:pos) =
+  assert (0 * n == 0);
+  bounded_multiple_is_zero x n
 
-val pow2_double_sum: n:nat -> Lemma (pow2 n + pow2 n = pow2 (n + 1))
-let pow2_double_sum n = ()
+val lemma_mul_sub_distr: a:int -> b:int -> c:int -> Lemma
+  (a * b - a * c = a * (b - c))
+let lemma_mul_sub_distr a b c = ()
 
-val pow2_double_mult: n:nat -> Lemma (2 * pow2 n = pow2 (n + 1))
-let pow2_double_mult n = ()
+val multiplication_order_lemma: a:int -> b:int -> p:pos ->
+    Lemma (a >= b <==> a * p >= b * p)
+let multiplication_order_lemma a b p = ()
 
-val pow2_lt_compat: n:nat -> m:nat -> Lemma
-  (requires (m < n))
-  (ensures  (pow2 m < pow2 n))
-  (decreases (n - m))
-let rec pow2_lt_compat n m =
-  match n-m with
-  | 1 -> ()
-  | _ -> pow2_lt_compat (n-1) m; pow2_lt_compat n (n-1)
 
-val pow2_le_compat: n:nat -> m:nat -> Lemma
-  (requires (m <= n))
-  (ensures  (pow2 m <= pow2 n))
-  (decreases (n - m))
-let pow2_le_compat n m =
-  match n-m with
-  | 0 -> ()
-  | _ -> pow2_lt_compat n m
+(*** Division/Modulo ***)
 
-val pow2_plus: n:nat -> m:nat -> Lemma
-  (ensures (pow2 n * pow2 m = pow2 (n + m)))
-  (decreases n)
-let rec pow2_plus n m =
-  match n with
-  | 0 -> ()
-  | _ -> pow2_plus (n - 1) m
+(* Lemma: Definition of euclidean division *)
+val euclidean_division_definition: a:int -> b:pos ->
+    Lemma (a = (a / b) * b + a % b)
+let euclidean_division_definition a b = ()
 
-(* Lemma : definition of the exponential property of pow2 *)
-val pow2_minus: n:nat -> m:nat{ n >= m } -> Lemma
-  ((pow2 n) / (pow2 m) = pow2 (n - m))
-let pow2_minus n m =
-  if n = m then ()
-  else
-    begin
-    pow2_lt_compat n m;
-    pow2_plus (n - m) m;
-    slash_star_axiom (pow2 (n - m)) (pow2 m) (pow2 n)
-    end
-
-#reset-options "--initial_fuel 0 --max_fuel 0"
-
-(* Lemma: loss of precision in euclidean division *)
-val multiply_fractions (a:int) (n:pos) : Lemma (n * ( a / n ) <= a)
-let multiply_fractions (a:int) (n:pos) = ()
 
 val modulo_lemma: a:nat -> b:pos -> Lemma (requires (a < b)) (ensures (a % b = a))
 let modulo_lemma a b = ()
@@ -214,40 +185,10 @@ val lemma_mod_lt: a:int -> p:pos -> Lemma (0 <= a % p /\ a % p < p)
 let lemma_mod_lt a p = ()
 
 
-val lemma_div_lt_nat: a:int -> n:nat -> m:nat{m <= n} ->
-  Lemma (requires (a < pow2 n))
-        (ensures  (a / pow2 m < pow2 (n-m)))
-let lemma_div_lt_nat a n m =
-  lemma_div_mod a (pow2 m);
-  assert(a = pow2 m * (a / pow2 m) + a % pow2 m);
-  pow2_plus m (n-m);
-  assert(pow2 n = pow2 m * pow2 (n - m))
-
-val lemma_div_lt (a:int) (n:nat) (m:nat) : Lemma
-  (requires m <= n /\ a < pow2 n)
-  (ensures a / pow2 m < pow2 (n-m))
-let lemma_div_lt a n m =
-  if a >= 0 then lemma_div_lt_nat a n m
-
-val bounded_multiple_is_zero (x:int) (n:pos) : Lemma
-  (requires -n < x * n /\ x * n < n)
-  (ensures x == 0)
-let bounded_multiple_is_zero (x:int) (n:pos) = ()
-
-val small_div (a:nat) (n:pos) : Lemma (requires a < n) (ensures a / n == 0)
-let small_div (a:nat) (n:pos) : Lemma (requires a < n) (ensures a / n == 0) = ()
-
 val small_mod (a:nat) (n:pos) : Lemma (requires a < n) (ensures a % n == a)
 let small_mod (a:nat) (n:pos) : Lemma (requires a < n) (ensures a % n == a) = ()
 
-val lt_multiple_is_equal (a:nat) (b:nat) (x:int) (n:pos) : Lemma
-  (requires a < n /\ b < n /\ a == b + x * n)
-  (ensures a == b /\ x == 0)
-let lt_multiple_is_equal (a:nat) (b:nat) (x:int) (n:pos) =
-  assert (0 * n == 0);
-  bounded_multiple_is_zero x n
-
-#reset-options "--z3rlimit 100 --initial_fuel 0 --initial_ifuel 0 --max_fuel 0 --max_ifuel 1 --z3seed 1"
+#reset-options "--z3rlimit 100 --max_fuel 0 --max_ifuel 1"
 
 let lemma_mod_plus_0 (a:int) (b:int) (p:pos) : Lemma
   ((a + b * p) % p - a % p = p * (b + a / p - (a + b * p) / p))
@@ -308,7 +249,8 @@ let sub_div_mod_1 (a:int) (n:pos) : Lemma ((a - n) % n == a % n /\ (a - n) / n =
   ()
 #pop-options
 
-#reset-options "--initial_fuel 0 --max_fuel 0 --z3cliopt smt.arith.nl=true --smtencoding.elim_box true --smtencoding.l_arith_repr native --smtencoding.nl_arith_repr native --z3rlimit 30"
+#push-options "--initial_fuel 0 --max_fuel 0 --z3cliopt smt.arith.nl=true --smtencoding.elim_box true --smtencoding.l_arith_repr native --smtencoding.nl_arith_repr native --z3rlimit 30"
+
 
 let rec lemma_div_mod_plus (a:int) (b:int) (n:pos) : Lemma
   (requires True)
@@ -329,10 +271,14 @@ let rec lemma_div_mod_plus (a:int) (b:int) (n:pos) : Lemma
     lemma_div_mod_plus a (b + 1) n;
     add_div_mod_1 (a + b * n) n
   )
-#reset-options
+#pop-options
+
+val small_div (a:nat) (n:pos) : Lemma (requires a < n) (ensures a / n == 0)
+let small_div (a:nat) (n:pos) : Lemma (requires a < n) (ensures a / n == 0) = ()
 
 val lemma_div_plus (a:int) (b:int) (n:pos) : Lemma ((a + b * n) / n = a / n + b)
 let lemma_div_plus (a:int) (b:int) (n:pos) = lemma_div_mod_plus a b n
+
 
 val cancel_mul_div (a:int) (n:pos) : Lemma ((a * n) / n == a)
 let cancel_mul_div (a:int) (n:pos) =
@@ -344,7 +290,10 @@ let cancel_mul_mod (a:int) (n:pos) =
   small_mod 0 n;
   lemma_mod_plus 0 a n
 
-#push-options "--z3rlimit 20"
+(* Lemma: (a * b) % b = 0 *)
+val multiple_modulo_lemma (a:int) (n:pos) : Lemma ((a * n) % n = 0)
+let multiple_modulo_lemma (a:int) (n:pos) = cancel_mul_mod a n
+
 
 val mod_add_both (a:int) (b:int) (x:int) (n:pos) : Lemma
   (requires a % n == b % n)
@@ -358,15 +307,13 @@ let mod_add_both (a:int) (b:int) (x:int) (n:pos) =
   assert ((a + x) % n == a + x - n * ((a + x) / n));
   assert ((b + x) % n == b + x - n * ((b + x) / n));
   assert ((a + x) % n - (b + x) % n == a - b + n * ((b + x) / n - (a + x) / n));
-  lemma_div_plus (b%n + x) (b/n) n;
-  lemma_div_plus (a%n + x) (a/n) n;
+  lemma_div_mod_plus (b%n + x) (b/n) n;
+  lemma_div_mod_plus (a%n + x) (a/n) n;
   swap_mul n (b/n); swap_mul n (a/n); (* ugh *)
   assert ((a + x) % n - (b + x) % n == a - b + n * (b/n + (b%n + x)/n - a/n - (a%n + x)/n));
   assert ((a + x) % n - (b + x) % n == a - b + n * (b/n - a/n));
   distributivity_sub_right n (b/n) (a/n);
   assert ((a + x) % n - (b + x) % n == 0)
-
-#pop-options
 
 val lemma_mod_add_distr (a:int) (b:int) (n:pos) : Lemma ((a + b % n) % n = (a + b) % n)
 let lemma_mod_add_distr (a:int) (b:int) (n:pos) =
@@ -384,24 +331,16 @@ let lemma_mod_sub_distr (a:int) (b:int) (n:pos) =
 val lemma_mod_sub_0: a:pos -> Lemma ((-1) % a = a - 1)
 let lemma_mod_sub_0 a = ()
 
-#push-options "--z3rlimit 500 --max_fuel 0 --max_ifuel 0"
-
 val lemma_mod_sub_1: a:pos -> b:pos{a < b} -> Lemma ((-a) % b = b - (a%b))
 let lemma_mod_sub_1 a b =
   small_mod a b;
   assert ((a%b) == a);
   assert ((-a)%b == b - a)
 
-#pop-options
-
-//NS: not sure why this requires 4 unfoldings
-//    it fails initially, and then succeeds on a retry with less fuel; strange
-#reset-options "--z3rlimit 20 --initial_ifuel 0 --initial_fuel 0 --z3seed 1"
 let lemma_mod_mul_distr_l_0 (a:int) (b:int) (p:pos) : Lemma
   ((((a % p) + (a / p) * p) * b) % p = ((a % p) * b + ((a / p) * b) * p) % p)
   = ()
 
-#reset-options "--initial_ifuel 1 --z3rlimit 5"
 val lemma_mod_mul_distr_l (a:int) (b:int) (n:pos) : Lemma
   (requires True)
   (ensures (a * b) % n = ((a % n) * b) % n)
@@ -433,23 +372,15 @@ let rec lemma_mod_mul_distr_l (a:int) (b:int) (n:pos) =
     mod_add_both (a * b + a) ((a % n) * b + a) (-a) n
   )
 
-#push-options "--z3rlimit 10"
-
 val lemma_mod_mul_distr_r (a:int) (b:int) (n:pos) : Lemma ((a * b) % n = (a * (b % n)) % n)
 let lemma_mod_mul_distr_r (a:int) (b:int) (n:pos) =
     assert (a * (b % n) == (b % n) * a);
     lemma_mod_mul_distr_l b a n
 
-#pop-options
-
 val lemma_mod_injective: p:pos -> a:nat -> b:nat -> Lemma
   (requires (a < p /\ b < p /\ a % p = b % p))
   (ensures  (a = b))
 let lemma_mod_injective p a b = ()
-
-val lemma_mul_sub_distr: a:int -> b:int -> c:int -> Lemma
-  (a * b - a * c = a * (b - c))
-let lemma_mul_sub_distr a b c = ()
 
 val lemma_div_exact: a:int -> p:pos -> Lemma
   (requires (a % p = 0))
@@ -461,7 +392,6 @@ val div_exact_r (a:int) (n:pos) : Lemma
   (ensures  (a = (a / n) * n))
 let div_exact_r (a:int) (n:pos) = lemma_div_exact a n
 
-#set-options "--z3rlimit 20"
 
 val lemma_mod_spec: a:int -> p:pos -> Lemma
   (a / p = (a - (a % p)) / p)
@@ -491,7 +421,8 @@ val lemma_mod_plus_distr_r: a:int -> b:int -> p:pos -> Lemma
 let lemma_mod_plus_distr_r a b p =
   lemma_mod_plus_distr_l b a p
 
-#reset-options "--z3rlimit 50"
+#reset-options "--z3rlimit 100 --initial_fuel 0 --max_fuel 0 --max_ifuel 0"
+
 
 val lemma_mod_plus_mul_distr: a:int -> b:int -> c:int -> p:pos -> Lemma
   (((a + b) * c) % p = ((((a % p) + (b % p)) % p) * (c % p)) % p)
@@ -515,18 +446,6 @@ let lemma_mod_mod a b p =
   lemma_mod_lt b p;
   modulo_lemma (b % p) p
 
-
-(* * Lemmas about multiplication, division and modulo. **)
-(* * This part focuses on the situation where          **)
-(* * dividend: nat    divisor: pos                     **)
-(* * TODO: add triggers for certain lemmas.            **)
-
-(* Lemma: Definition of euclidean division *)
-val euclidean_division_definition: a:int -> b:pos ->
-    Lemma (a = (a / b) * b + a % b)
-let euclidean_division_definition a b = ()
-
-(* Lemma: Propriety about modulo *)
 val modulo_range_lemma: a:int -> b:pos ->
     Lemma (a % b >= 0 && a % b < b)
 let modulo_range_lemma a b = ()
@@ -539,21 +458,6 @@ val small_modulo_lemma_2: a:int -> b:pos ->
     Lemma (requires a % b = a) (ensures a < b)
 let small_modulo_lemma_2 a b = ()
 
-val small_division_lemma_1: a:nat -> b:pos ->
-    Lemma (requires a < b) (ensures a / b = 0)
-let small_division_lemma_1 a b = ()
-
-val small_division_lemma_2 (a:int) (n:pos) : Lemma
-  (requires a / n = 0)
-  (ensures 0 <= a /\ a < n)
-let small_division_lemma_2 (a:int) (n:pos) = lemma_div_mod a n
-
-(* Lemma: Multiplication by a positive integer preserves order *)
-val multiplication_order_lemma: a:int -> b:int -> p:pos ->
-    Lemma (a >= b <==> a * p >= b * p)
-let multiplication_order_lemma a b p = ()
-
-(* Lemma: Propriety about multiplication after division *)
 val division_propriety: a:int -> b:pos ->
     Lemma (a - b < (a / b) * b && (a / b) * b <= a)
 let division_propriety a b = ()
@@ -579,41 +483,11 @@ let division_definition a b m =
   division_definition_lemma_1 a b m;
   division_definition_lemma_2 a b m
 
-(* Lemma: (a * b) / b = a *)
-val multiple_division_lemma (a:int) (n:pos) : Lemma ((a * n) / n = a)
-let multiple_division_lemma (a:int) (n:pos) = cancel_mul_div a n
-
-(* Lemma: (a * b) % b = 0 *)
-val multiple_modulo_lemma (a:int) (n:pos) : Lemma ((a * n) % n = 0)
-let multiple_modulo_lemma (a:int) (n:pos) = cancel_mul_mod a n
-
 (* Lemma: Division distributivity under special condition *)
 val division_addition_lemma: a:int -> b:pos -> n:int ->
     Lemma ( (a + n * b) / b = a / b + n )
 let division_addition_lemma a b n = division_definition (a + n * b) b (a / b + n)
 
-let lemma_div_le_ (a:int) (b:int) (d:pos) : Lemma
-  (requires (a <= b /\ a / d > b / d))
-  (ensures  (False))
-  = lemma_div_mod a d;
-    lemma_div_mod b d;
-    cut (d * (a / d) + a % d <= d * (b / d) + b % d);
-    cut (d * (a / d) - d * (b / d) <= b % d - a % d);
-    distributivity_sub_right d (a/d) (b/d);
-    cut (b % d < d /\ a % d < d);
-    cut (d * (a/d - b/d) <= d)
-
-val lemma_div_le: a:int -> b:int -> d:pos ->
-  Lemma (requires (a <= b))
-        (ensures  (a / d <= b / d))
-let lemma_div_le a b d =
-  if a / d > b / d then lemma_div_le_ a b d
-
-(* Lemma: Division distributivity under special condition *)
-#reset-options "--initial_fuel 0 --max_fuel 0 --z3cliopt smt.arith.nl=true --smtencoding.elim_box true --smtencoding.l_arith_repr native --smtencoding.nl_arith_repr native --z3rlimit 30"
-val division_sub_lemma (a:int) (n:pos) (b:nat) : Lemma ((a - b * n) / n = a / n - b)
-let division_sub_lemma (a:int) (n:pos) (b:nat) = lemma_div_plus a (-b) n
-#reset-options
 
 #reset-options "--z3rlimit 20 --max_fuel 0 --max_ifuel 0 --smtencoding.elim_box true --smtencoding.l_arith_repr native --smtencoding.nl_arith_repr wrapped"
 (* Lemma: Modulo distributivity *)
@@ -657,23 +531,65 @@ let mod_mul_div_exact (a:int) (b:pos) (n:pos) =
   // a / b = k * n
   cancel_mul_mod k n
 
-#reset-options "--initial_fuel 1 --max_fuel 1"
 
-val mod_pow2_div2 (a:int) (m:pos) : Lemma
-  (requires a % pow2 m == 0)
-  (ensures (a / 2) % pow2 (m - 1) == 0)
-let mod_pow2_div2 (a:int) (m:pos) : Lemma
-  (requires a % pow2 m == 0)
-  (ensures (a / 2) % pow2 (m - 1) == 0)
-  =
-  mod_mul_div_exact a 2 (pow2 (m - 1))
+(* Lemma: definition of Euclidean division *)
+val euclidean_div_axiom: a:int -> b:pos -> Lemma
+  ((a - b * (a / b) >= 0 /\ a - b * (a / b) < b))
+let euclidean_div_axiom a b = ()
 
-// JP: there seems to be a discrepancy in z3 behavior across platforms. This
-// goes fine on Windows / CI with rlimit=40, but on Linux systems rlimit=400 is
-// needed. Leaving the high rlimit because it doesn't seem to deteriorate the
-// total verification time too much (I see ~40 seconds on my machine).
-// GM: Noticed the same, set it to 200
-#reset-options "--max_fuel 0 --max_ifuel 0 --smtencoding.elim_box true --smtencoding.l_arith_repr native --smtencoding.nl_arith_repr boxwrap --z3rlimit 200"
+#reset-options "--initial_fuel 0 --max_fuel 0"
+
+(* Lemma: loss of precision in euclidean division *)
+val multiply_fractions (a:int) (n:pos) : Lemma (n * ( a / n ) <= a)
+let multiply_fractions (a:int) (n:pos) = ()
+
+
+val lemma_eucl_div_bound: a:int -> b:int -> q:int -> Lemma
+  (requires (a < q))
+  (ensures  (a + q * b < q * (b+1)))
+let lemma_eucl_div_bound a b q = ()
+
+val nat_over_pos_is_nat: a:nat -> b:pos -> Lemma (a / b >= 0)
+let nat_over_pos_is_nat a b = ()
+
+(* Lemma: (a * b) / b = a *)
+val multiple_division_lemma (a:int) (n:pos) : Lemma ((a * n) / n = a)
+let multiple_division_lemma (a:int) (n:pos) = cancel_mul_div a n
+
+
+val small_division_lemma_1: a:nat -> b:pos ->
+    Lemma (requires a < b) (ensures a / b = 0)
+let small_division_lemma_1 a b = ()
+
+val small_division_lemma_2 (a:int) (n:pos) : Lemma
+  (requires a / n = 0)
+  (ensures 0 <= a /\ a < n)
+let small_division_lemma_2 (a:int) (n:pos) = lemma_div_mod a n
+
+
+(* Lemma: Division distributivity under special condition *)
+#reset-options "--initial_fuel 0 --max_fuel 0 --z3cliopt smt.arith.nl=true --smtencoding.elim_box true --smtencoding.l_arith_repr native --smtencoding.nl_arith_repr native --z3rlimit 30"
+val division_sub_lemma (a:int) (n:pos) (b:nat) : Lemma ((a - b * n) / n = a / n - b)
+let division_sub_lemma (a:int) (n:pos) (b:nat) = lemma_div_plus a (-b) n
+#reset-options
+
+
+let lemma_div_le_ (a:int) (b:int) (d:pos) : Lemma
+  (requires (a <= b /\ a / d > b / d))
+  (ensures  (False))
+  = lemma_div_mod a d;
+    lemma_div_mod b d;
+    cut (d * (a / d) + a % d <= d * (b / d) + b % d);
+    cut (d * (a / d) - d * (b / d) <= b % d - a % d);
+    distributivity_sub_right d (a/d) (b/d);
+    cut (b % d < d /\ a % d < d);
+    cut (d * (a/d - b/d) <= d)
+
+val lemma_div_le: a:int -> b:int -> d:pos ->
+  Lemma (requires (a <= b))
+        (ensures  (a / d <= b / d))
+let lemma_div_le a b d =
+  if a / d > b / d then lemma_div_le_ a b d
 
 (* Lemma: Divided by a product is equivalent to being divided one by one *)
 val division_multiplication_lemma (a:int) (b:pos) (c:pos) : Lemma
@@ -742,6 +658,104 @@ let modulo_modulo_lemma (a:int) (b:pos) (c:pos) =
   swap_mul b c;
   lemma_mod_plus (a % (b * c)) ((a / (b * c)) * c) b
 
+val modulo_add : p:pos -> a:int -> b:int -> c:int -> Lemma
+  (requires (b % p = c % p))
+  (ensures  ((a + b) % p = (a + c) % p))
+let modulo_add p a b c =
+  modulo_distributivity a b p;
+  modulo_distributivity a c p
+
+val lemma_mod_twice : a:int -> p:pos -> Lemma ((a % p) % p == a % p)
+let lemma_mod_twice a p = lemma_mod_mod (a % p) a p
+
+val modulo_sub : p:pos -> a:int -> b:int -> c:int -> Lemma
+  (requires ((a + b) % p = (a + c) % p))
+  (ensures (b % p = c % p))
+
+let modulo_sub p a b c =
+  modulo_add p (-a) (a + b) (a + c)
+
+val lemma_mod_plus_injective (n:pos) (a:int) (b:nat) (c:nat) : Lemma
+  (requires b < n /\ c < n /\ (a + b) % n = (a + c) % n)
+  (ensures  b = c)
+let lemma_mod_plus_injective (n:pos) (a:int) (b:nat) (c:nat) =
+  small_mod b n;
+  small_mod c n;
+  mod_add_both (a + b) (a + c) (-a) n
+
+
+
+(*** Powers of 2 ***)
+
+#reset-options "--initial_fuel 1 --max_fuel 1"
+
+val pow2_double_sum: n:nat -> Lemma (pow2 n + pow2 n = pow2 (n + 1))
+let pow2_double_sum n = ()
+
+val pow2_double_mult: n:nat -> Lemma (2 * pow2 n = pow2 (n + 1))
+let pow2_double_mult n = ()
+
+val pow2_lt_compat: n:nat -> m:nat -> Lemma
+  (requires (m < n))
+  (ensures  (pow2 m < pow2 n))
+  (decreases (n - m))
+let rec pow2_lt_compat n m =
+  match n-m with
+  | 1 -> ()
+  | _ -> pow2_lt_compat (n-1) m; pow2_lt_compat n (n-1)
+
+val pow2_le_compat: n:nat -> m:nat -> Lemma
+  (requires (m <= n))
+  (ensures  (pow2 m <= pow2 n))
+  (decreases (n - m))
+let pow2_le_compat n m =
+  match n-m with
+  | 0 -> ()
+  | _ -> pow2_lt_compat n m
+
+val pow2_plus: n:nat -> m:nat -> Lemma
+  (ensures (pow2 n * pow2 m = pow2 (n + m)))
+  (decreases n)
+let rec pow2_plus n m =
+  match n with
+  | 0 -> ()
+  | _ -> pow2_plus (n - 1) m
+
+(* Lemma : definition of the exponential property of pow2 *)
+val pow2_minus: n:nat -> m:nat{ n >= m } -> Lemma
+  ((pow2 n) / (pow2 m) = pow2 (n - m))
+let pow2_minus n m =
+  if n = m then ()
+  else
+    begin
+    pow2_lt_compat n m;
+    pow2_plus (n - m) m;
+    slash_star_axiom (pow2 (n - m)) (pow2 m) (pow2 n)
+    end
+
+val lemma_div_lt_nat: a:int -> n:nat -> m:nat{m <= n} ->
+  Lemma (requires (a < pow2 n))
+        (ensures  (a / pow2 m < pow2 (n-m)))
+let lemma_div_lt_nat a n m =
+  lemma_div_mod a (pow2 m);
+  assert(a = pow2 m * (a / pow2 m) + a % pow2 m);
+  pow2_plus m (n-m);
+  assert(pow2 n = pow2 m * pow2 (n - m))
+
+val lemma_div_lt (a:int) (n:nat) (m:nat) : Lemma
+  (requires m <= n /\ a < pow2 n)
+  (ensures a / pow2 m < pow2 (n-m))
+let lemma_div_lt a n m =
+  if a >= 0 then lemma_div_lt_nat a n m
+
+val mod_pow2_div2 (a:int) (m:pos) : Lemma
+  (requires a % pow2 m == 0)
+  (ensures (a / 2) % pow2 (m - 1) == 0)
+let mod_pow2_div2 (a:int) (m:pos) : Lemma
+  (requires a % pow2 m == 0)
+  (ensures (a / 2) % pow2 (m - 1) == 0)
+  =
+  mod_mul_div_exact a 2 (pow2 (m - 1))
 #set-options "--z3rlimit 10"
 
 val pow2_multiplication_division_lemma_1: a:int -> b:nat -> c:nat{c >= b} ->
@@ -811,28 +825,3 @@ val pow2_modulo_modulo_lemma_2: a:int -> b:nat -> c:nat{c <= b} ->
 let pow2_modulo_modulo_lemma_2 a b c =
   pow2_le_compat b c;
   small_modulo_lemma_1 (a % pow2 c) (pow2 b)
-
-val modulo_add : p:pos -> a:int -> b:int -> c:int -> Lemma
-  (requires (b % p = c % p))
-  (ensures  ((a + b) % p = (a + c) % p))
-let modulo_add p a b c =
-  modulo_distributivity a b p;
-  modulo_distributivity a c p
-
-val lemma_mod_twice : a:int -> p:pos -> Lemma ((a % p) % p == a % p)
-let lemma_mod_twice a p = lemma_mod_mod (a % p) a p
-
-val modulo_sub : p:pos -> a:int -> b:int -> c:int -> Lemma
-  (requires ((a + b) % p = (a + c) % p))
-  (ensures (b % p = c % p))
-
-let modulo_sub p a b c =
-  modulo_add p (-a) (a + b) (a + c)
-
-val lemma_mod_plus_injective (n:pos) (a:int) (b:nat) (c:nat) : Lemma
-  (requires b < n /\ c < n /\ (a + b) % n = (a + c) % n)
-  (ensures  b = c)
-let lemma_mod_plus_injective (n:pos) (a:int) (b:nat) (c:nat) =
-  small_mod b n;
-  small_mod c n;
-  mod_add_both (a + b) (a + c) (-a) n
