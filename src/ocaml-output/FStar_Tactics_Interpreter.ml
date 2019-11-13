@@ -2073,9 +2073,9 @@ let (run_tactic_on_typ' :
                                (uu___206_2434.FStar_TypeChecker_Env.erasable_types_tab)
                            }  in
                          let rng =
-                           let uu____2437 = FStar_Range.use_range rng_goal
+                           let uu____2437 = FStar_Range.use_range rng_tac  in
+                           let uu____2438 = FStar_Range.use_range rng_goal
                               in
-                           let uu____2438 = FStar_Range.use_range rng_tac  in
                            FStar_Range.range_of_rng uu____2437 uu____2438  in
                          let uu____2439 = initial_proofstate rng env4  in
                          (match uu____2439 with
