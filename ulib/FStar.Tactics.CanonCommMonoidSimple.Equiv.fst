@@ -258,7 +258,6 @@ let sort_correct : permute_correct sort = (fun #a -> sort_correct_aux #a)
 
 (***** Canonicalization tactics *)
 
-[@plugin]
 let canon (e:exp) = sort (flatten e)
 
 let canon_correct (#a:Type) (eq:equiv a) (m:cm a eq) (am:amap a) (e:exp) 
@@ -296,21 +295,22 @@ let rec where_aux (n:nat) (x:term) (xs:list term) :
   | x'::xs' -> if term_eq x x' then Some n else where_aux (n+1) x xs'
 let where = where_aux 0
 
+let fatom (t:term) (ts:list term) (am:amap term) : Tac (exp * list term * amap term) =
+  match where t ts with
+  | Some v -> (Atom v, ts, am)
+  | None ->
+    let vfresh = length ts in
+    (Atom vfresh, ts @ [t], update vfresh t am)
+
 // This expects that mult, unit, and t have already been normalized
-let rec reification_aux (#a:Type) (ts:list term) (am:amap a)
-                        (mult unit t : term) : Tac (exp * list term * amap a) =
+let rec reification_aux (ts:list term) (am:amap term)
+                        (mult unit t : term) : Tac (exp * list term * amap term) =
   let hd, tl = collect_app_ref t in
-  let fatom (t:term) (ts:list term) (am:amap a) : Tac (exp * list term * amap a) =
-    match where t ts with
-    | Some v -> (Atom v, ts, am)
-    | None -> let vfresh = length ts in let z = unquote t in
-              (Atom vfresh, ts @ [t], update vfresh z am)
-  in
   match inspect hd, list_unref tl with
   | Tv_FVar fv, [(t1, Q_Explicit) ; (t2, Q_Explicit)] ->
     if term_eq (pack (Tv_FVar fv)) mult
-    then (let (e1,ts,am) = reification_aux ts am mult unit t1 in
-          let (e2,ts,am) = reification_aux ts am mult unit t2 in
+    then (let (e1, ts, am) = reification_aux ts am mult unit t1 in
+          let (e2, ts, am) = reification_aux ts am mult unit t2 in
           (Mult e1 e2, ts, am))
     else fatom t ts am
   | _, _ ->
@@ -318,50 +318,72 @@ let rec reification_aux (#a:Type) (ts:list term) (am:amap a)
     then (Unit, ts, am)
     else fatom t ts am
 
-let reification (#a:Type) (eq:equiv a) (m:cm a eq) (ts:list term) (am:amap a) (t:term) :
-    Tac (exp * list term * amap a) =
-  let mult = norm_term [delta] (quote (CM?.mult m)) in
-  let unit = norm_term [delta] (quote (CM?.unit m)) in
+let reification (eq: term) (m: term) (ts:list term) (am:amap term) (t:term) :
+    Tac (exp * list term * amap term) =
+  let mult = norm_term [delta] (`CM?.mult (`#m)) in
+  let unit = norm_term [delta] (`CM?.unit (`#m)) in
   let t    = norm_term [] t in
   reification_aux ts am mult unit t
 
-let rec repeat_cong_right_identity (#a:Type) (eq:equiv a) (m:cm a eq) : Tac unit =
-  or_else (fun _ -> apply_lemma (quote (right_identity))) 
+let rec repeat_cong_right_identity (eq: term) (m: term) : Tac unit =
+  or_else (fun _ -> apply_lemma (`right_identity)) 
                     // WARNING: right_identity is currently fixed to types at u#1 
                     // because otherwise Meta-F* picks up a universe level u#0 for 
                     // types that are in u#1, such as, LowStar.Resource.resource
-          (fun _ -> apply_lemma (quote (CM?.congruence m));
+          (fun _ -> apply_lemma (`CM?.congruence (`#m));
                     split ();
-                    apply_lemma (quote (EQ?.reflexivity eq));
+                    apply_lemma (`EQ?.reflexivity (`#eq));
                     repeat_cong_right_identity eq m
                     )
 
-let canon_lhs_rhs (#a:Type) (eq:equiv a) (m:cm a eq) (lhs rhs:term) : Tac unit =
-  let (r1, ts, am) = reification eq m [] (const (CM?.unit m)) lhs in
-  let (r2, _, am) = reification eq m ts am rhs in
+(* `am` is an amap (basically a list) of terms, each representing a value
+of type `a` (whichever we are canonicalizing). This functions converts
+`am` into a single `term` of type `amap a`, suitable to call `mdenote` with *)
+let convert_am (am : amap term) : Tac term =
+  let (map, def) = am in
+  let rec convert_map (m : list (atom * term)) : term =
+    match m with
+    | [] -> `[]
+    | (a, t)::ps ->
+        let a = pack_ln (Tv_Const (C_Int a)) in
+        `((`#a, (`#t)) :: (`#(convert_map ps)))
+  in
+  `( (`#(convert_map map), `#def) )
+      
+
+
+let canon_lhs_rhs (eq: term) (m: term) (lhs rhs:term) : Tac unit =
+  let am = const (`CM?.unit (`#m)) in (* empty map *)
+  let (r1, ts, am) = reification eq m [] am lhs in
+  let (r2,  _, am) = reification eq m ts am rhs in
   //dump ("am = " ^ term_to_string (quote am));
   //dump ("r1 = " ^ term_to_string (norm_term [delta;primops] (quote (mdenote eq m am r1))));
   //dump ("r2 = " ^ term_to_string (norm_term [delta;primops] (quote (mdenote eq m am r2))));
   //dump ("before = " ^ term_to_string (norm_term [hnf;delta;primops]
   //   (quote (mdenote eq m am r1 `EQ?.eq eq` mdenote eq m am r2)))); 
-  //dump ("current goal" ^ term_to_string (cur_goal ()));
-  change_sq (quote (mdenote eq m am r1 `EQ?.eq eq` mdenote eq m am r2));
-  //dump ("expected after = " ^ term_to_string (norm_term [delta;primops]
-  //   (quote (xsdenote eq m am (canon r1) `EQ?.eq eq`
-  //           xsdenote eq m am (canon r2)))));
+  dump ("current goal -- " ^ term_to_string (cur_goal ()));
+  let am = convert_am am in
+  change_sq (`(mdenote (`#eq) (`#m) (`#am) (`@r1)
+                 `EQ?.eq (`#eq)`
+               mdenote (`#eq) (`#m) (`#am) (`@r2)));
+  dump "after change";
+  (* dump ("expected after = " ^ term_to_string (norm_term [delta;primops] *)
+  (*    (quote (xsdenote eq m am (canon r1) `EQ?.eq eq` *)
+  (*            xsdenote eq m am (canon r2))))); *)
   apply (`monoid_reflect);
-  //dump ("after apply monoid_reflect");
+  dump ("after apply monoid_reflect");
   norm [delta_only [`%canon; `%xsdenote; `%flatten; `%sort;
                     `%select; `%assoc; `%fst; `%__proj__Mktuple2__item___1;
                     `%(@); `%append; `%List.Tot.Base.sortWith;
                     `%List.Tot.Base.partition; `%bool_of_compare; 
                     `%compare_of_bool;
        ]; primops];
-  //dump "before refl";
-  or_else (fun _ -> apply_lemma (quote (EQ?.reflexivity eq)))
+  dump "before refl";
+  or_else (fun _ -> apply_lemma (`(EQ?.reflexivity (`#eq))))
           (fun _ -> repeat_cong_right_identity eq m)
 
-let canon_monoid (#a:Type) (eq:equiv a) (m:cm a eq) : Tac unit =
+[@plugin]
+let canon_monoid (eq: term) (m: term) : Tac unit =
   norm [];
   let t = cur_goal () in 
   // removing top-level squash application

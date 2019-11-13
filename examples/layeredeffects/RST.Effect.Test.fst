@@ -402,10 +402,11 @@ let typecheck_delta () : Tac unit =
   let open FStar.Algebra.CommMonoid.Equiv in
   let open FStar.Tactics.CanonCommMonoidSimple.Equiv in
   norm [delta];
-  canon_monoid req rm;
+  canon_monoid (`req) (`rm);
   let _ = forall_intro () in
   norm [delta];
-  canon_monoid req rm
+  canon_monoid (`req) (`rm);
+  ()
 
 
 #push-options "--no_tactics"
@@ -635,10 +636,11 @@ let solve_forward_inference_goal () : Tac unit =
   let open FStar.Algebra.CommMonoid.Equiv in
   let open FStar.Tactics.CanonCommMonoidSimple.Equiv in
   norm [delta];
-  canon_monoid req rm;
+  canon_monoid (`req) (`rm);
   norm [delta];
   let _ = forall_intro () in
-  canon_monoid req rm
+  canon_monoid (`req) (`rm);
+  ()
 
 let solve_resource_witness_goal () : Tac unit =
   exact (cur_witness ())

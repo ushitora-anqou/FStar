@@ -48,29 +48,33 @@ let squash_and p q (x:squash (p /\ q)) : (p /\ q) =
   let x : squash (p `c_and` q) = FStar.Squash.join_squash x in
   x
 
-inline_for_extraction noextract let resolve_frame_delta () : Tac unit =
+inline_for_extraction noextract
+let resolve_frame_delta () : Tac unit =
   norm [delta_only [`%frame_delta]];
   apply (`squash_and);
   split ();
   norm [delta_only [`%frame_delta_pre]];
-  apply_lemma (quote can_be_split_into_star);
-  canon_monoid req rm;
+  apply_lemma (`can_be_split_into_star);
+  canon_monoid (`req) (`rm);
   norm [delta_only [`%frame_delta_post]];
   ignore (forall_intro ());
-  apply_lemma (quote can_be_split_into_star);
-  canon_monoid req rm
+  apply_lemma (`can_be_split_into_star);
+  canon_monoid (`req) (`rm);
+  ()
 
-inline_for_extraction noextract let resolve_delta () : Tac unit =
+inline_for_extraction noextract
+let resolve_delta () : Tac unit =
   refine_intro ();
   flip ();
   apply_lemma (`unfold_with_tactic);
   norm [delta_only [`%frame_delta]];
   split ();
   norm [delta_only [`%frame_delta_pre]];
-  apply_lemma (quote can_be_split_into_star);
+  apply_lemma (`can_be_split_into_star);
   flip ();
-  canon_monoid req rm;
+  canon_monoid (`req) (`rm);
   norm [delta_only [`%frame_delta_post]];
   ignore (forall_intro ());
-  apply_lemma (quote can_be_split_into_star);
-  canon_monoid req rm
+  apply_lemma (`can_be_split_into_star);
+  canon_monoid (`req) (`rm);
+  ()
