@@ -336,24 +336,27 @@ let rec repeat_cong_right_identity (eq: term) (m: term) : Tac unit =
                     repeat_cong_right_identity eq m
                     )
 
+let rec convert_map (m : list (atom * term)) : Tac term =
+  match m with
+  | [] -> `[]
+  | (a, t)::ps ->
+      let a = pack_ln (Tv_Const (C_Int a)) in
+      let t = norm_term [delta] t in
+      `((`#a, (`#t)) :: (`#(convert_map ps)))
+
 (* `am` is an amap (basically a list) of terms, each representing a value
 of type `a` (whichever we are canonicalizing). This functions converts
 `am` into a single `term` of type `amap a`, suitable to call `mdenote` with *)
 let convert_am (am : amap term) : Tac term =
   let (map, def) = am in
-  let rec convert_map (m : list (atom * term)) : term =
-    match m with
-    | [] -> `[]
-    | (a, t)::ps ->
-        let a = pack_ln (Tv_Const (C_Int a)) in
-        `((`#a, (`#t)) :: (`#(convert_map ps)))
-  in
+  let def = norm_term [delta] def in
   `( (`#(convert_map map), `#def) )
       
 
 
 let canon_lhs_rhs (eq: term) (m: term) (lhs rhs:term) : Tac unit =
-  let am = const (`CM?.unit (`#m)) in (* empty map *)
+  let m_unit = norm_term [delta](`CM?.unit (`#m)) in
+  let am = const m_unit in (* empty map *)
   let (r1, ts, am) = reification eq m [] am lhs in
   let (r2,  _, am) = reification eq m ts am rhs in
   //dump ("am = " ^ term_to_string (quote am));
