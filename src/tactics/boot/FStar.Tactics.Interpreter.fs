@@ -438,7 +438,7 @@ let run_tactic_on_typ'
     (* TODO: We do not faithfully expose universes to metaprograms *)
     let env = { env with Env.lax_universes = true } in
     let env = { env with failhard = true } in
-    let rng = range_of_rng (use_range rng_goal) (use_range rng_tac) in
+    let rng = range_of_rng (use_range rng_tac) (use_range rng_goal) in
     let ps, w = initial_proofstate rng env in
 
     Reflection.Basic.env_hook := Some env;
