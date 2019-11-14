@@ -351,8 +351,6 @@ let convert_am (am : amap term) : Tac term =
   let (map, def) = am in
   let def = norm_term [delta] def in
   `( (`#(convert_map map), `#def) )
-      
-
 
 let canon_lhs_rhs (eq: term) (m: term) (lhs rhs:term) : Tac unit =
   let m_unit = norm_term [delta](`CM?.unit (`#m)) in
@@ -364,24 +362,24 @@ let canon_lhs_rhs (eq: term) (m: term) (lhs rhs:term) : Tac unit =
   //dump ("r2 = " ^ term_to_string (norm_term [delta;primops] (quote (mdenote eq m am r2))));
   //dump ("before = " ^ term_to_string (norm_term [hnf;delta;primops]
   //   (quote (mdenote eq m am r1 `EQ?.eq eq` mdenote eq m am r2)))); 
-  dump ("current goal -- " ^ term_to_string (cur_goal ()));
+  //dump ("current goal -- " ^ term_to_string (cur_goal ()));
   let am = convert_am am in
   change_sq (`(mdenote (`#eq) (`#m) (`#am) (`@r1)
                  `EQ?.eq (`#eq)`
                mdenote (`#eq) (`#m) (`#am) (`@r2)));
-  dump "after change";
+  //dump "after change";
   (* dump ("expected after = " ^ term_to_string (norm_term [delta;primops] *)
   (*    (quote (xsdenote eq m am (canon r1) `EQ?.eq eq` *)
   (*            xsdenote eq m am (canon r2))))); *)
   apply (`monoid_reflect);
-  dump ("after apply monoid_reflect");
+  //dump ("after apply monoid_reflect");
   norm [delta_only [`%canon; `%xsdenote; `%flatten; `%sort;
                     `%select; `%assoc; `%fst; `%__proj__Mktuple2__item___1;
                     `%(@); `%append; `%List.Tot.Base.sortWith;
                     `%List.Tot.Base.partition; `%bool_of_compare; 
                     `%compare_of_bool;
        ]; primops];
-  dump "before refl";
+  //dump "before refl";
   or_else (fun _ -> apply_lemma (`(EQ?.reflexivity (`#eq))))
           (fun _ -> repeat_cong_right_identity eq m)
 
