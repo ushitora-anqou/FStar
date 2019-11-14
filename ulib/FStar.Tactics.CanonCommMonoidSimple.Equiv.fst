@@ -34,7 +34,10 @@ open FStar.Tactics.CanonCommSwaps
 
 (***** Expression syntax *)
 
-let atom : eqtype = nat
+// GM: ugh, we had `nat`, but then we get bitten by lack
+//     of subtyping over datatypes when we typecheck the amap term
+//     we generate (see convert_am).
+let atom : eqtype = int
 
 type exp : Type =
   | Unit : exp
