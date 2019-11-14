@@ -661,7 +661,7 @@ let one_inference_step () : Tac unit =
   end
   | _ -> fail "No solvable goals found!"
 
-[@resolve_implicits]
+[@resolve_implicits plugin]
 let rec resolve_tac () : Tac unit =
   let cur_goals = goals () in
   let n = ngoals () in
