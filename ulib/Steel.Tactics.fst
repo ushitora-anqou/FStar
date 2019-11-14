@@ -48,6 +48,7 @@ let squash_and p q (x:squash (p /\ q)) : (p /\ q) =
   let x : squash (p `c_and` q) = FStar.Squash.join_squash x in
   x
 
+[@plugin]
 inline_for_extraction noextract
 let resolve_frame_delta () : Tac unit =
   norm [delta_only [`%frame_delta]];
@@ -62,6 +63,7 @@ let resolve_frame_delta () : Tac unit =
   canon_monoid (`req) (`rm);
   ()
 
+[@plugin]
 inline_for_extraction noextract
 let resolve_delta () : Tac unit =
   refine_intro ();

@@ -395,6 +395,7 @@ unfold let delta_spec
          (forall (x: a). (outer1 x) `can_be_split_into` (inner1 x, delta))
   )
 
+[@plugin]
 let typecheck_delta () : Tac unit =
   norm [delta_only [`%delta_spec]];
   apply_lemma (normalize_term (`split_to_canon_monoid_problem));
