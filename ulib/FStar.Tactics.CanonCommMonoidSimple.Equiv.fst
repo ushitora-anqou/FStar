@@ -241,12 +241,12 @@ let permute_via_swaps_correct
 
 // Here we sort the variable numbers
 
-let sort : permute = List.Tot.sortWith #nat (compare_of_bool (<))
+let sort : permute = List.Tot.sortWith #int (compare_of_bool (<))
 
 let sort_via_swaps (#a:Type) (am:amap a)  (xs:list atom) 
   : Lemma (exists (ss:swaps_for xs). sort xs == apply_swaps xs ss) =
-  List.Tot.Properties.sortWith_permutation #nat (compare_of_bool (<)) xs;
-  let (ss:swaps_for xs) = equal_counts_implies_swaps #nat xs (sort xs) in
+  List.Tot.Properties.sortWith_permutation #int (compare_of_bool (<)) xs;
+  let (ss:swaps_for xs) = equal_counts_implies_swaps #int xs (sort xs) in
   assume (sort xs == apply_swaps xs ss)
   // this should just work from the type of ss 
   // (and the postcondition of equal_counts_implies_swaps),
