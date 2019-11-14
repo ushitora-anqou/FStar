@@ -300,6 +300,7 @@ let fatom (t:term) (ts:list term) (am:amap term) : Tac (exp * list term * amap t
   | Some v -> (Atom v, ts, am)
   | None ->
     let vfresh = length ts in
+    let t = norm_term [delta] t in
     (Atom vfresh, ts @ [t], update vfresh t am)
 
 // This expects that mult, unit, and t have already been normalized
@@ -336,21 +337,28 @@ let rec repeat_cong_right_identity (eq: term) (m: term) : Tac unit =
                     repeat_cong_right_identity eq m
                     )
 
-let rec convert_map (m : list (atom * term)) : Tac term =
+let rec convert_map (m : list (atom * term)) : term =
   match m with
   | [] -> `[]
   | (a, t)::ps ->
       let a = pack_ln (Tv_Const (C_Int a)) in
-      let t = norm_term [delta] t in
+      (* let t = norm_term [delta] t in *)
       `((`#a, (`#t)) :: (`#(convert_map ps)))
 
 (* `am` is an amap (basically a list) of terms, each representing a value
 of type `a` (whichever we are canonicalizing). This functions converts
 `am` into a single `term` of type `amap a`, suitable to call `mdenote` with *)
-let convert_am (am : amap term) : Tac term =
+let convert_am (am : amap term) : term =
   let (map, def) = am in
-  let def = norm_term [delta] def in
+  (* let def = norm_term [delta] def in *)
   `( (`#(convert_map map), `#def) )
+
+let rec quote_exp (e:exp) : term =
+    match e with
+    | Unit -> (`Unit)
+    | Mult e1 e2 -> (`Mult (`#(quote_exp e1)) (`#(quote_exp e2)))
+    | Atom n -> let nt = pack_ln (Tv_Const (C_Int n)) in
+                (`Atom (`#nt))
 
 let canon_lhs_rhs (eq: term) (m: term) (lhs rhs:term) : Tac unit =
   let m_unit = norm_term [delta](`CM?.unit (`#m)) in
@@ -364,9 +372,11 @@ let canon_lhs_rhs (eq: term) (m: term) (lhs rhs:term) : Tac unit =
   //   (quote (mdenote eq m am r1 `EQ?.eq eq` mdenote eq m am r2)))); 
   //dump ("current goal -- " ^ term_to_string (cur_goal ()));
   let am = convert_am am in
-  change_sq (`(mdenote (`#eq) (`#m) (`#am) (`@r1)
+  let r1 = quote_exp r1 in
+  let r2 = quote_exp r2 in
+  change_sq (`(mdenote (`#eq) (`#m) (`#am) (`#r1)
                  `EQ?.eq (`#eq)`
-               mdenote (`#eq) (`#m) (`#am) (`@r2)));
+               mdenote (`#eq) (`#m) (`#am) (`#r2)));
   //dump "after change";
   (* dump ("expected after = " ^ term_to_string (norm_term [delta;primops] *)
   (*    (quote (xsdenote eq m am (canon r1) `EQ?.eq eq` *)
