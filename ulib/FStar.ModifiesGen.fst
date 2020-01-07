@@ -1491,7 +1491,7 @@ let loc_addresses_unused_in #al c r a h = ()
 
 let loc_addresses_not_unused_in #al c r a h = ()
 
-#reset-options "--z3cliopt 'smt.qi.eager_threshold=100' --z3rlimit_factor 4"
+#reset-options "--z3cliopt smt.qi.eager_threshold=100 --z3rlimit_factor 4"
 let loc_unused_in_not_unused_in_disjoint #al c h =
   assert (Ghost.reveal (Loc?.aux (loc_unused_in c h)) `loc_aux_disjoint` Ghost.reveal (Loc?.aux (loc_not_unused_in c h)));
   assert (loc_disjoint #al #c (loc_unused_in #al c h)
@@ -1542,7 +1542,7 @@ let mreference_live_loc_not_unused_in #al c #t #pre h b =
   loc_includes_trans (loc_not_unused_in c h) (loc_freed_mreference b) (loc_mreference b);
   ()
 
-#reset-options "--z3cliopt 'smt.qi.eager_threshold=100'"
+#reset-options "--z3cliopt smt.qi.eager_threshold=100"
 
 let mreference_unused_in_loc_unused_in #al c #t #pre h b =
   Classical.move_requires (addr_unused_in_does_not_contain_addr h) (HS.frameOf b, HS.as_addr b);
@@ -1705,7 +1705,7 @@ let union_aux_of_aux_left
 : Tot (GSet.set (aloc (cls_union c)))
 = GSet.comprehend (union_aux_of_aux_left_pred c b s)
 
-#reset-options "--z3cliopt 'smt.qi.eager_threshold=100'"
+#reset-options "--z3cliopt smt.qi.eager_threshold=100"
 let union_loc_of_loc #al c b l =
   let (Loc regions region_liveness_tags non_live_addrs live_addrs aux) = l in
   let aux' : GSet.set (aloc #(cls_union_aloc al) (cls_union c)) =
@@ -1785,7 +1785,7 @@ let union_loc_of_loc_none #al c b =
 let union_loc_of_loc_union #al c b l1 l2 =
   assert (loc_equal #_ #(cls_union c) (union_loc_of_loc c b (loc_union #_ #(c b) l1 l2)) (loc_union #_ #(cls_union c) (union_loc_of_loc c b l1) (union_loc_of_loc c b l2)))
 
-#reset-options "--z3cliopt 'smt.qi.eager_threshold=100'"
+#reset-options "--z3cliopt smt.qi.eager_threshold=100"
 
 let union_loc_of_loc_addresses #al c b preserve_liveness r n =
   assert (loc_equal #_ #(cls_union c) (union_loc_of_loc c b (loc_addresses #_ #(c b) preserve_liveness r n)) (loc_addresses #_ #(cls_union c) preserve_liveness r n))
@@ -1878,7 +1878,7 @@ let union_loc_of_loc_includes_elim
   );
   assert (larger `loc_includes` smaller)
 
-#reset-options "--z3cliopt 'smt.qi.eager_threshold=100'"
+#reset-options "--z3cliopt smt.qi.eager_threshold=100"
 
 let union_loc_of_loc_includes #al c b s1 s2 =
   Classical.move_requires (union_loc_of_loc_includes_elim c b s1) s2;
@@ -1932,7 +1932,7 @@ let union_loc_of_loc_disjoint_intro
   assert (auxl ` loc_aux_disjoint` doms);
   assert (loc_disjoint_aux larger' smaller')
 
-#reset-options "--z3cliopt 'smt.qi.eager_threshold=100'"
+#reset-options "--z3cliopt smt.qi.eager_threshold=100"
 
 #push-options "--z3rlimit 32"
 let union_loc_of_loc_disjoint_elim
@@ -2062,7 +2062,7 @@ let loc_of_union_loc_union_loc_of_loc #al c b s
 let loc_of_union_loc_none #al c b
 = assert (loc_of_union_loc #_ #c b loc_none `loc_equal` loc_none)
 
-#reset-options "--z3rlimit_factor 4 --z3cliopt 'smt.qi.eager_threshold=100' --initial_fuel 2 --max_fuel 2 --initial_ifuel 2 --max_ifuel 2"
+#reset-options "--z3rlimit_factor 4 --z3cliopt smt.qi.eager_threshold=100 --initial_fuel 2 --max_fuel 2 --initial_ifuel 2 --max_ifuel 2"
 let loc_of_union_loc_union #al c b l1 l2
 = assert (loc_of_union_loc b (l1 `loc_union` l2) `loc_equal` (loc_of_union_loc b l1 `loc_union` loc_of_union_loc b l2))
 
@@ -2146,7 +2146,7 @@ let raise_loc_includes #al #c l1 l2 =
   assert (forall (x: aloc c) . GSet.mem x (Ghost.reveal (Loc?.aux l2)) <==> GSet.mem (upgrade_aloc x) (Ghost.reveal (Loc?.aux l2')));
   assert (loc_aux_includes (Ghost.reveal (Loc?.aux l1')) (Ghost.reveal (Loc?.aux l2')) <==> loc_aux_includes (Ghost.reveal (Loc?.aux l1)) (Ghost.reveal (Loc?.aux l2)))
 
-#reset-options "--z3cliopt 'smt.qi.eager_threshold=100'"
+#reset-options "--z3cliopt smt.qi.eager_threshold=100"
 
 let raise_loc_disjoint #al #c l1 l2 =
   let l1' = raise_loc l1 in
