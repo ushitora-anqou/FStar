@@ -188,6 +188,7 @@ let lazy_chooser k i = match k with
     | FStar.Syntax.Syntax.BadLazy -> failwith "lazy chooser: got a BadLazy"
     | FStar.Syntax.Syntax.Lazy_bv         -> FStar.Reflection.Embeddings.unfold_lazy_bv          i
     | FStar.Syntax.Syntax.Lazy_binder     -> FStar.Reflection.Embeddings.unfold_lazy_binder      i
+    | FStar.Syntax.Syntax.Lazy_optionstate -> FStar.Reflection.Embeddings.unfold_lazy_optionstate i
     | FStar.Syntax.Syntax.Lazy_fvar       -> FStar.Reflection.Embeddings.unfold_lazy_fvar        i
     | FStar.Syntax.Syntax.Lazy_comp       -> FStar.Reflection.Embeddings.unfold_lazy_comp        i
     | FStar.Syntax.Syntax.Lazy_env        -> FStar.Reflection.Embeddings.unfold_lazy_env         i
@@ -195,14 +196,16 @@ let lazy_chooser k i = match k with
     | FStar.Syntax.Syntax.Lazy_proofstate -> FStar.Tactics.Embedding.unfold_lazy_proofstate i
     | FStar.Syntax.Syntax.Lazy_goal       -> FStar.Tactics.Embedding.unfold_lazy_goal i
     | FStar.Syntax.Syntax.Lazy_uvar       -> FStar.Syntax.Util.exp_string "((uvar))"
-    | FStar.Syntax.Syntax.Lazy_embedding (_, t) -> FStar.Common.force_thunk t
+    | FStar.Syntax.Syntax.Lazy_embedding (_, t) -> Thunk.force t
 
 // This is called directly by the Javascript port (it doesn't call Main)
 let setup_hooks () =
     Options.initialize_parse_warn_error FStar.Parser.ParseIt.parse_warn_error;
     FStar.Syntax.Syntax.lazy_chooser := Some lazy_chooser;
     FStar.Syntax.Util.tts_f := Some FStar.Syntax.Print.term_to_string;
-    FStar.TypeChecker.Normalize.unembed_binder_knot := Some FStar.Reflection.Embeddings.e_binder
+    FStar.TypeChecker.Normalize.unembed_binder_knot := Some FStar.Reflection.Embeddings.e_binder;
+    FStar.TypeChecker.Tc.unembed_optionstate_knot := Some FStar.Reflection.Embeddings.e_optionstate;
+    ()
 
 let handle_error e =
     if FStar.Errors.handleable e then

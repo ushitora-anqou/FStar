@@ -54,7 +54,16 @@ let norm_before_encoding env t =
                  Env.AllowUnboundUniverses;
                  Env.EraseUniverses;
                  Env.Exclude Env.Zeta] in
-    N.normalize steps env.tcenv t
+    Profiling.profile
+      (fun () -> N.normalize steps env.tcenv t)
+      (Some (Ident.string_of_lid (Env.current_module env.tcenv)))
+      "FStar.TypeChecker.SMTEncoding.Encode.norm_before_encoding"
+
+let norm_with_steps steps env t =
+  Profiling.profile
+      (fun () -> N.normalize steps env t)
+      (Some (Ident.string_of_lid (Env.current_module env)))
+      "FStar.TypeChecker.SMTEncoding.Encode.norm"
 
 type prims_t = {
     mk:lident -> string -> term * int * list<decl>;
@@ -405,7 +414,7 @@ let encode_smt_lemma env fv t =
 
 let encode_free_var uninterpreted env fv tt t_norm quals :decls_t * env_t =
     let lid = fv.fv_name.v in
-    if not <| (U.is_pure_or_ghost_function t_norm || is_reifiable_function env.tcenv t_norm)
+    if not <| (U.is_pure_or_ghost_function t_norm || is_smt_reifiable_function env.tcenv t_norm)
     || U.is_lemma t_norm
     || uninterpreted
     then let arg_sorts = match (SS.compress t_norm).n with
@@ -425,7 +434,7 @@ let encode_free_var uninterpreted env fv tt t_norm quals :decls_t * env_t =
               let formals, (pre_opt, res_t) =
                 let args, comp = curried_arrow_formals_comp t_norm in
                 let comp =
-                  if is_reifiable_comp env.tcenv comp
+                  if is_smt_reifiable_comp env.tcenv comp
                   then S.mk_Total (reify_comp ({env.tcenv with lax=true}) comp U_unknown)
                   else comp
                 in
@@ -661,10 +670,10 @@ let encode_top_level_let :
           arrow_formals_comp_norm norm (U.unrefine t)
 
         | _ when not norm ->
-          let t_norm = N.normalize [Env.AllowUnboundUniverses; Env.Beta; Env.Weak; Env.HNF;
-                                    (* we don't know if this will terminate; so don't do recursive steps *)
-                                    Env.Exclude Env.Zeta;
-                                    Env.UnfoldUntil delta_constant; Env.EraseUniverses]
+          let t_norm = norm_with_steps [Env.AllowUnboundUniverses; Env.Beta; Env.Weak; Env.HNF;
+                                       (* we don't know if this will terminate; so don't do recursive steps *)
+                                       Env.Exclude Env.Zeta;
+                                       Env.UnfoldUntil delta_constant; Env.EraseUniverses]
                         tcenv t
           in
           arrow_formals_comp_norm true t_norm
@@ -698,9 +707,9 @@ let encode_top_level_let :
       in
       let binders, body, comp = aux t e in
       let binders, body, comp =
-          if is_reifiable_comp tcenv comp
+          if is_smt_reifiable_comp tcenv comp
           then let comp = reify_comp tcenv comp U_unknown in
-               let body = TcUtil.reify_body tcenv body in
+               let body = TcUtil.reify_body tcenv [] body in
                let more_binders, body, comp = aux comp body in
                binders@more_binders, body, comp
           else binders, body, comp
@@ -952,7 +961,7 @@ let encode_top_level_let :
 
         if quals |> BU.for_some (function HasMaskedEffect -> true | _ -> false)
         || typs  |> BU.for_some (fun t -> not <| (U.is_pure_or_ghost_function t ||
-                                                  is_reifiable_function env.tcenv t))
+                                                  is_smt_reifiable_function env.tcenv t))
         then decls, env_decls
         else
           try
@@ -1012,8 +1021,6 @@ and encode_sigelt' (env:env_t) (se:sigelt) : (decls_t * env_t) =
         | _ -> false
     in
     match se.sigel with
-     | Sig_new_effect_for_free _ ->
-         failwith "impossible -- new_effect_for_free should have been removed by Tc.fs"
      | Sig_splice _ ->
          failwith "impossible -- splice should have been removed by Tc.fs"
      | Sig_pragma _
@@ -1022,7 +1029,7 @@ and encode_sigelt' (env:env_t) (se:sigelt) : (decls_t * env_t) =
      | Sig_sub_effect _ -> [], env
 
      | Sig_new_effect(ed) ->
-       if not (Env.is_reifiable_effect env.tcenv ed.mname)
+       if not (is_smt_reifiable_effect env.tcenv ed.mname)
        then [], env
        else (* The basic idea:
                     1. Encode M.bind_repr: a:Type -> b:Type -> wp_a -> wp_b -> f:st_repr a wp_a -> g:(a -> st_repr b) : st_repr b
@@ -1714,18 +1721,19 @@ let encode_modul tcenv modul =
     decls, env |> get_current_module_fvbs
   end
 
-let encode_modul_from_cache tcenv name (decls, fvbs) =
+let encode_modul_from_cache tcenv tcmod (decls, fvbs) =
   if Options.lax () && Options.ml_ish () then ()
   else
+    let name = BU.format2 "%s %s" (if tcmod.is_interface then "interface" else "module") tcmod.name.str in
     if Env.debug tcenv Options.Medium
-    then BU.print2 "+++++++++++Encoding externals from cache for %s ... %s decls\n" name.str (List.length decls |> string_of_int);
-    let env = get_env name tcenv |> reset_current_module_fvbs in
+    then BU.print2 "+++++++++++Encoding externals from cache for %s ... %s decls\n" name (List.length decls |> string_of_int);
+    let env = get_env tcmod.name tcenv |> reset_current_module_fvbs in
     let env =
       fvbs |> List.rev |> List.fold_left (fun env fvb ->
         add_fvar_binding_to_env fvb env
       ) env in
-    give_decls_to_z3_and_set_env env name.str decls;
-    if Env.debug tcenv Options.Medium then BU.print1 "Done encoding externals from cache for %s\n" name.str
+    give_decls_to_z3_and_set_env env name decls;
+    if Env.debug tcenv Options.Medium then BU.print1 "Done encoding externals from cache for %s\n" name
 
 open FStar.SMTEncoding.Z3
 let encode_query use_env_msg tcenv q
@@ -1747,7 +1755,7 @@ let encode_query use_env_msg tcenv q
                       //if the assumption is of the form x:(forall y. P) etc.
                     | _ ->
                       x.sort in
-                let t = N.normalize [Env.Eager_unfolding; Env.Beta; Env.Simplify; Env.Primops; Env.EraseUniverses] env.tcenv t in
+                let t = norm_with_steps [Env.Eager_unfolding; Env.Beta; Env.Simplify; Env.Primops; Env.EraseUniverses] env.tcenv t in
                 Syntax.mk_binder ({x with sort=t})::out, rest
             | _ -> [], bindings in
         let closing, bindings = aux tcenv.gamma in
@@ -1757,13 +1765,13 @@ let encode_query use_env_msg tcenv q
     if debug tcenv Options.Medium
     || debug tcenv <| Options.Other "SMTEncoding"
     || debug tcenv <| Options.Other "SMTQuery"
-    then BU.print1 "Encoding query formula: %s\n" (Print.term_to_string q);
-    let phi, qdecls = encode_formula q env in
+    then BU.print1 "Encoding query formula {: %s\n" (Print.term_to_string q);
+    let (phi, qdecls), ms = BU.record_time (fun () -> encode_formula q env) in
     let labels, phi = ErrorReporting.label_goals use_env_msg (Env.get_range tcenv) phi in
     let label_prefix, label_suffix = encode_labels labels in
     let caption =
         if Options.log_queries ()
-        then [Caption ("Encoding query formula: " ^ (Print.term_to_string q))]
+        then [Caption ("Encoding query formula : " ^ (Print.term_to_string q))]
         else []
     in
     let query_prelude =
@@ -1774,4 +1782,13 @@ let encode_query use_env_msg tcenv q
 
     let qry = Util.mkAssume(mkNot phi, Some "query", (varops.mk_unique "@query")) in
     let suffix = [Term.Echo "<labels>"] @ label_suffix @ [Term.Echo "</labels>"; Term.Echo "Done!"] in
+    if debug tcenv Options.Medium
+    || debug tcenv <| Options.Other "SMTEncoding"
+    || debug tcenv <| Options.Other "SMTQuery"
+    then BU.print_string "} Done encoding\n";
+    if debug tcenv Options.Medium
+    || debug tcenv <| Options.Other "SMTEncoding"
+    || debug tcenv <| Options.Other "SMTQuery"
+    || debug tcenv <| Options.Other "Time"
+    then BU.print1 "Encoding took %sms\n" (string_of_int ms);
     query_prelude, labels, qry, suffix

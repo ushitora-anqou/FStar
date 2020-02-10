@@ -116,7 +116,7 @@ let copy_optionstate m = Util.smap_copy m
 let fstar_options : ref<list<list<optionstate>>> = Util.mk_ref []
 
 let internal_peek () = List.hd (List.hd !fstar_options)
-let peek () = internal_peek()
+let peek () = copy_optionstate (internal_peek())
 let pop  () = // already signal-atomic
     match !fstar_options with
     | []
@@ -146,7 +146,7 @@ let set o =
 let snapshot () = Common.snapshot push fstar_options ()
 let rollback depth = Common.rollback pop fstar_options depth
 
-let set_option k v = Util.smap_add (peek()) k v
+let set_option k v = Util.smap_add (internal_peek()) k v
 let set_option' (k,v) =  set_option k v
 
 let light_off_files : ref<list<string>> = Util.mk_ref []
@@ -185,6 +185,7 @@ let defaults =
       ("full_context_dependency"      , Bool true);
       ("hide_uvar_nums"               , Bool false);
       ("hint_info"                    , Bool false);
+      ("hint_dir"                     , Unset);
       ("hint_file"                    , Unset);
       ("in"                           , Bool false);
       ("ide"                          , Bool false);
@@ -192,6 +193,8 @@ let defaults =
       ("include"                      , List []);
       ("print"                        , Bool false);
       ("print_in_place"               , Bool false);
+      ("fuel"                         , Unset);
+      ("ifuel"                        , Unset);
       ("initial_fuel"                 , Int 2);
       ("initial_ifuel"                , Int 1);
       ("keep_query_captions"          , Bool true);
@@ -222,8 +225,12 @@ let defaults =
       ("print_universes"              , Bool false);
       ("print_z3_statistics"          , Bool false);
       ("prn"                          , Bool false);
+      ("quake"                        , Int 0);
+      ("quake_lo"                     , Int 1);
+      ("quake_hi"                     , Int 1);
       ("query_stats"                  , Bool false);
       ("record_hints"                 , Bool false);
+      ("record_options"               , Bool false);
       ("reuse_hint_for"               , Unset);
       ("silent"                       , Bool false);
       ("smt"                          , Unset);
@@ -264,6 +271,7 @@ let defaults =
       ("warn_error"                   , List []);
       ("use_extracted_interfaces"     , Bool false);
       ("use_nbe"                      , Bool false);
+      ("use_nbe_for_extraction"       , Bool false);
       ("trivial_pre_for_unannotated_effectful_fns"
                                       , Bool true);
       ("profile_group_by_decl"        , Bool false);
@@ -290,7 +298,7 @@ let initialize_parse_warn_error f = fst (parse_warn_error_set_get) f
 let parse_warn_error s = snd (parse_warn_error_set_get) () s
 
 let init () =
-   let o = peek () in
+   let o = internal_peek () in
    Util.smap_clear o;
    defaults |> List.iter set_option'                          //initialize it with the default values
 
@@ -303,7 +311,7 @@ let clear () =
 let _run = clear()
 
 let get_option s =
-  match Util.smap_try_find (peek()) s with
+  match Util.smap_try_find (internal_peek()) s with
   | None -> failwith ("Impossible: option " ^s^ " not found")
   | Some s -> s
 
@@ -337,6 +345,7 @@ let get_extract_namespace       ()      = lookup_opt "extract_namespace"        
 let get_fs_typ_app              ()      = lookup_opt "fs_typ_app"               as_bool
 let get_hide_uvar_nums          ()      = lookup_opt "hide_uvar_nums"           as_bool
 let get_hint_info               ()      = lookup_opt "hint_info"                as_bool
+let get_hint_dir                ()      = lookup_opt "hint_dir"                 (as_option as_string)
 let get_hint_file               ()      = lookup_opt "hint_file"                (as_option as_string)
 let get_in                      ()      = lookup_opt "in"                       as_bool
 let get_ide                     ()      = lookup_opt "ide"                      as_bool
@@ -372,8 +381,11 @@ let get_print_implicits         ()      = lookup_opt "print_implicits"          
 let get_print_universes         ()      = lookup_opt "print_universes"          as_bool
 let get_print_z3_statistics     ()      = lookup_opt "print_z3_statistics"      as_bool
 let get_prn                     ()      = lookup_opt "prn"                      as_bool
+let get_quake_lo                ()      = lookup_opt "quake_lo"                 as_int
+let get_quake_hi                ()      = lookup_opt "quake_hi"                 as_int
 let get_query_stats             ()      = lookup_opt "query_stats"              as_bool
 let get_record_hints            ()      = lookup_opt "record_hints"             as_bool
+let get_record_options          ()      = lookup_opt "record_options"           as_bool
 let get_reuse_hint_for          ()      = lookup_opt "reuse_hint_for"           (as_option as_string)
 let get_silent                  ()      = lookup_opt "silent"                   as_bool
 let get_smt                     ()      = lookup_opt "smt"                      (as_option as_string)
@@ -415,6 +427,7 @@ let get_ml_no_eta_expand_coertions ()   = lookup_opt "__ml_no_eta_expand_coertio
 let get_warn_error              ()      = lookup_opt "warn_error"               (as_list as_string)
 let get_use_extracted_interfaces ()     = lookup_opt "use_extracted_interfaces" as_bool
 let get_use_nbe                 ()      = lookup_opt "use_nbe"                  as_bool
+let get_use_nbe_for_extraction  ()      = lookup_opt "use_nbe_for_extraction"                  as_bool
 let get_trivial_pre_for_unannotated_effectful_fns
                                 ()      = lookup_opt "trivial_pre_for_unannotated_effectful_fns"    as_bool
 let get_profile                 ()      = lookup_opt "profile"                  (as_option (as_list as_string))
@@ -438,7 +451,11 @@ let debug_level_geq l2 = get_debug_level() |> Util.for_some (fun l1 -> one_debug
 // Note: the "ulib/fstar" is for the case where package is installed in the
 // standard "unix" way (e.g. opam) and the lib directory is $PREFIX/lib/fstar
 let universe_include_path_base_dirs =
+  let sub_dirs = ["legacy"; "experimental"; ".cache"] in
   ["/ulib"; "/lib/fstar"]
+  |> List.collect (fun d -> d :: (sub_dirs |> List.map (fun s -> d ^ "/" ^ s)))
+
+
 
 // See comment in the interface file
 let _version = FStar.Util.mk_ref ""
@@ -572,7 +589,7 @@ let rec desc_of_opt_type typ : option<string> =
   | ReverseAccumulated elem_spec
   | WithSideEffect (_, elem_spec) -> desc_of_opt_type elem_spec
 
-let rec arg_spec_of_opt_type opt_name typ : opt_variant<option_val> =
+let arg_spec_of_opt_type opt_name typ : opt_variant<option_val> =
   let parser = parse_opt_val opt_name typ in
   match desc_of_opt_type typ with
   | None -> ZeroArgs (fun () -> parser "")
@@ -739,9 +756,14 @@ let rec specs_with_types () : list<(char * string * opt_type * string)> =
         "Don't print unification variable numbers");
 
        ( noshort,
+         "hint_dir",
+         PathStr "path",
+        "Read/write hints to <dir>/module_name.hints (instead of placing hint-file alongside source file)");
+
+       ( noshort,
          "hint_file",
          PathStr "path",
-        "Read/write hints to <path> (instead of module-specific hints files)");
+        "Read/write hints to <path> (instead of module-specific hints files; overrides hint_dir)");
 
        ( noshort,
         "hint_info",
@@ -777,6 +799,42 @@ let rec specs_with_types () : list<(char * string * opt_type * string)> =
         "print_in_place",
         Const (Bool true),
         "Parses and prettyprints in place the files included on the command line");
+
+       ( noshort,
+        "fuel",
+        PostProcessed
+            ((function | String s ->
+                         let p f = Int (int_of_string f) in
+                         let min, max =
+                           match split s "," with
+                           | [f] -> f, f
+                           | [f1;f2] -> f1, f2
+                           | _ -> failwith "unexpected value for --fuel"
+                         in
+                         set_option "initial_fuel" (p min);
+                         set_option "max_fuel" (p max);
+                         String s
+                       | _ -> failwith "impos"),
+            SimpleStr "non-negative integer or pair of non-negative integers"),
+        "Set initial_fuel and max_fuel at once");
+
+       ( noshort,
+        "ifuel",
+        PostProcessed
+            ((function | String s ->
+                         let p f = Int (int_of_string f) in
+                         let min, max =
+                           match split s "," with
+                           | [f] -> f, f
+                           | [f1;f2] -> f1, f2
+                           | _ -> failwith "unexpected value for --ifuel"
+                         in
+                         set_option "initial_ifuel" (p min);
+                         set_option "max_ifuel" (p max);
+                         String s
+                       | _ -> failwith "impos"),
+            SimpleStr "non-negative integer or pair of non-negative integers"),
+        "Set initial_ifuel and max_ifuel at once");
 
        ( noshort,
         "initial_fuel",
@@ -904,6 +962,24 @@ let rec specs_with_types () : list<(char * string * opt_type * string)> =
         "Print full names (deprecated; use --print_full_names instead)");
 
        ( noshort,
+        "quake",
+        PostProcessed
+            ((function | String s ->
+                         let p f = Int (int_of_string f) in
+                         let min, max =
+                           match split s "/" with
+                           | [f] -> f, f
+                           | [f1;f2] -> f1, f2
+                           | _ -> failwith "unexpected value for --quake"
+                         in
+                         set_option "quake_lo" (p min);
+                         set_option "quake_hi" (p max);
+                         String s
+                       | _ -> failwith "impos"),
+            SimpleStr "non-negative integer or pair of non-negative integers"),
+        "N/M repeats each query M times and checks that it succeeds at least N times");
+
+       ( noshort,
         "query_stats",
         Const (Bool true),
         "Print SMT query statistics");
@@ -912,6 +988,11 @@ let rec specs_with_types () : list<(char * string * opt_type * string)> =
         "record_hints",
         Const (Bool true),
         "Record a database of hints for efficient proof replay");
+
+       ( noshort,
+        "record_options",
+        Const (Bool true),
+        "Record the state of options used to check each sigelt, useful for the `check_with` attribute and metaprogramming");
 
        ( noshort,
         "reuse_hint_for",
@@ -1157,6 +1238,11 @@ let rec specs_with_types () : list<(char * string * opt_type * string)> =
          "Use normalization by evaluation as the default normalization strategy (default 'false')");
 
         ( noshort,
+         "use_nbe_for_extraction",
+          BoolStr,
+         "Use normalization by evaluation for normalizing terms before extraction (default 'false')");
+
+        ( noshort,
          "trivial_pre_for_unannotated_effectful_fns",
           BoolStr,
          "Enforce trivial preconditions for unannotated effectful functions (default 'true')");
@@ -1216,8 +1302,11 @@ let settable = function
     | "detail_hint_replay"
     | "eager_subtyping"
     | "hide_uvar_nums"
+    | "hint_dir"
     | "hint_file"
     | "hint_info"
+    | "fuel"
+    | "ifuel"
     | "initial_fuel"
     | "initial_ifuel"
     | "lax"
@@ -1239,7 +1328,11 @@ let settable = function
     | "print_universes"
     | "print_z3_statistics"
     | "prn"
+    | "quake_lo"
+    | "quake_hi"
+    | "quake"
     | "query_stats"
+    | "record_options"
     | "reuse_hint_for"
     | "silent"
     | "smtencoding.elim_box"
@@ -1500,7 +1593,19 @@ let full_context_dependency      () = true
 let hide_uvar_nums               () = get_hide_uvar_nums              ()
 let hint_info                    () = get_hint_info                   ()
                                     || get_query_stats                ()
+let hint_dir                     () = get_hint_dir                    ()
 let hint_file                    () = get_hint_file                   ()
+let hint_file_for_src src_filename =
+      match hint_file() with
+      | Some fn -> fn
+      | None ->
+        let file_name =
+          match hint_dir () with
+          | Some dir ->
+            Util.concat_dir_filename dir (Util.basename src_filename)
+          | _ -> src_filename
+        in
+        Util.format1 "%s.hints" file_name
 let ide                          () = get_ide                         ()
 let print                        () = get_print                       ()
 let print_in_place               () = get_print_in_place              ()
@@ -1535,8 +1640,11 @@ let print_implicits              () = get_print_implicits             ()
 let print_real_names             () = get_prn () || get_print_full_names()
 let print_universes              () = get_print_universes             ()
 let print_z3_statistics          () = get_print_z3_statistics         ()
+let quake_lo                     () = get_quake_lo                    ()
+let quake_hi                     () = get_quake_hi                    ()
 let query_stats                  () = get_query_stats                 ()
 let record_hints                 () = get_record_hints                ()
+let record_options               () = get_record_options              ()
 let reuse_hint_for               () = get_reuse_hint_for              ()
 let silent                       () = get_silent                      ()
 let smtencoding_elim_box         () = get_smtencoding_elim_box        ()
@@ -1587,6 +1695,7 @@ let ml_no_eta_expand_coertions   () = get_ml_no_eta_expand_coertions  ()
 let warn_error                   () = String.concat "" (get_warn_error ())
 let use_extracted_interfaces     () = get_use_extracted_interfaces    ()
 let use_nbe                      () = get_use_nbe                     ()
+let use_nbe_for_extraction       () = get_use_nbe_for_extraction      ()
 let trivial_pre_for_unannotated_effectful_fns
                                  () = get_trivial_pre_for_unannotated_effectful_fns ()
 

@@ -144,7 +144,7 @@ val get_option                  : string  -> option_val
 val full_context_dependency     : unit    -> bool
 val hide_uvar_nums              : unit    -> bool
 val hint_info                   : unit    -> bool
-val hint_file                   : unit    -> option<string>
+val hint_file_for_src           : string  -> string
 val ide                         : unit    -> bool
 val include_path                : unit    -> list<string>
 val print                       : unit    -> bool
@@ -185,8 +185,11 @@ val print_implicits             : unit    -> bool
 val print_real_names            : unit    -> bool
 val print_universes             : unit    -> bool
 val print_z3_statistics         : unit    -> bool
+val quake_lo                    : unit    -> int
+val quake_hi                    : unit    -> int
 val query_stats                 : unit    -> bool
 val record_hints                : unit    -> bool
+val record_options              : unit    -> bool
 val reuse_hint_for              : unit    -> option<string>
 val set_option                  : string  -> option_val -> unit
 val set_options                 : string -> parse_cmdline_res
@@ -238,6 +241,7 @@ val ml_no_eta_expand_coertions  : unit    -> bool
 val warn_error                  : unit    -> string
 val use_extracted_interfaces    : unit    -> bool
 val use_nbe                     : unit    -> bool
+val use_nbe_for_extraction      : unit    -> bool
 val trivial_pre_for_unannotated_effectful_fns
                                 : unit    -> bool
 
