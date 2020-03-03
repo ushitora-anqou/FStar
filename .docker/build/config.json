@@ -21,7 +21,7 @@
 
     "NotificationEnabled" : true,
     "NotificationChannel" : "#fstar-build",
-    "PublicBranches" : [ "master" ],
+    "PublicBranches" : [ "master", "_taramana_20200303_ci_timeout" ],
 
     "CompressBuildFolder": true,
     "FolderToCompress" : "FStar",
