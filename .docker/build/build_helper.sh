@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 
+set -e
+set -x
+
 target=$1
 out_file=$2
 threads=$3
 branchname=$4
 
-# # Add ssh identity
-# eval $(ssh-agent)
+# Add ssh identity
+eval $(ssh-agent)
 # ssh-add .ssh/id_rsa
 
 # eval $(opam config env)
