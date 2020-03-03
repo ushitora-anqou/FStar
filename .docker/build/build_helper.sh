@@ -36,3 +36,4 @@ fi
 
 # Generate the container timestamp for debug purposes
 echo $(date -u "+%Y-%m-%d %H:%M:%S") >> "timestamp.txt"
+echo End of build_helper.sh
