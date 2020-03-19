@@ -194,8 +194,8 @@ let no_extensions : extension_parser = fun s -> None
 ///      will just extract to `"Hello " ^ "world"`
 inline_for_extraction
 let sprintf
-    (s:string{normalize_term (b2t (Some? (parse_format_string s no_extensions)))})
-    : normalize_term (dir_type (Some?.v (parse_format_string s no_extensions)))
+    (s:string{Some? (parse_format_string s no_extensions)})
+    : (dir_type (Some?.v (parse_format_string s no_extensions)))
     = normalize_term (string_of_dirs (Some?.v (parse_format_string s no_extensions)) (fun s -> s))
 
 
