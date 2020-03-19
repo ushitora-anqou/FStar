@@ -103,12 +103,13 @@ val buffer_of_literal: (s: ascii_string) ->
 /// relies on the normalizer to discharge all the relevant proof obligations, and
 /// synthesizes the length of the resulting buffer. The pair has no cost: KreMLin
 /// guarantees that it will be eliminated.
+// GM: TODO: I removed the normalize (this is work in progres)
 unfold
 let buf_len_of_literal (s: string):
   ST.Stack (IB.ibuffer UInt8.t & UInt32.t)
     (requires (fun _ ->
-      normalize (is_ascii_string s) /\
-      normalize (List.Tot.length (String.list_of_string s) < pow2 32)))
+      (is_ascii_string s) /\
+      (List.Tot.length (String.list_of_string s) < pow2 32)))
     (ensures (fun h0 r h1 ->
       let b, l = r in
       buffer_of_literal_post s h0 b h1 /\
