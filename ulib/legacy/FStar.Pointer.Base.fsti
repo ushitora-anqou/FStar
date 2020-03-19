@@ -310,7 +310,7 @@ let fun_of_list
   (l: struct_literal s)
   (f: struct_field s)
 : Pure (type_of_struct_field s f)
-  (requires (normalize_term (struct_literal_wf s l) == true))
+  (requires (struct_literal_wf s l == true))
   (ensures (fun _ -> True))
 =
   let f' : string = f in
@@ -336,7 +336,7 @@ let struct_create
   (s: struct_typ)
   (l: struct_literal s)
 : Pure (struct s)
-  (requires (normalize_term (struct_literal_wf s l) == true))
+  (requires (struct_literal_wf s l == true))
   (ensures (fun _ -> True))
 = struct_create_fun s (fun_of_list s l)
 
