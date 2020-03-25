@@ -513,3 +513,13 @@ let (uvars_uncached :
       uu____1500.FStar_Syntax_Syntax.free_uvars  in
     FStar_Util.as_set uu____1497 compare_uv
   
+let (names_uncached :
+  FStar_Syntax_Syntax.term -> FStar_Syntax_Syntax.bv FStar_Util.set) =
+  fun t  ->
+    let uu____1519 =
+      let uu____1522 =
+        let uu____1523 = free_names_and_uvars t false  in
+        FStar_Pervasives_Native.fst uu____1523  in
+      uu____1522.FStar_Syntax_Syntax.free_names  in
+    FStar_Util.as_set uu____1519 FStar_Syntax_Syntax.order_bv
+  
