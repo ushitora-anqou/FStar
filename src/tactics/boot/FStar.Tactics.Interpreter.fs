@@ -506,7 +506,22 @@ let run_tactic_on_typ
                     : list<goal> // remaining goals
                     * term // witness
                     =
+    let tacdbg = Env.debug env (Options.Other "Tac") in
     let rng = range_of_rng (use_range rng_goal) (use_range rng_tac) in
+
+    let env', _ = Env.clear_expected_typ env in
+
+    (* Make sure the goal is well-typed, this is a paranoid check *)
+    if tacdbg then
+      BU.print1 "run_tactic_on_typ, checking goal typ = (%s) {\n" (Print.term_to_string typ);
+    let typ, _, g = TcTerm.tc_term env' typ in
+
+    TcRel.force_trivial_guard env g;
+    Err.stop_if_err ();
+
+    if tacdbg then
+      BU.print_string "} done checking\n";
+
     let ps, w = proofstate_of_goal_ty rng env typ in
     let gs, _res = run_tactic_on_ps rng_tac rng_goal e_unit () e_unit tactic env ps in
     gs, w
