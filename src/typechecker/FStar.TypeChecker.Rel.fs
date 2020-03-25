@@ -3641,25 +3641,32 @@ let teq_nosmt (env:env) (t1:typ) (t2:typ) : option<guard_t> =
   | None -> None
   | Some g -> discharge_guard' None env g false
 
+(* Returns "None" if the uvar is solved, "Some u'" if it's still
+ * unresolved, where "u'" is the "normalized" unresolved uvar (since u
+ * might be solved to u1, u1 to u2, etc, up to u). Though
+ * we only do that procedure if the variable has a meta annotation,
+ * otherwise we just return Some u. *)
+let rec get_unresolved (ctx_u : ctx_uvar) : option<ctx_uvar> =
+  match Unionfind.find ctx_u.ctx_uvar_head, ctx_u.ctx_uvar_meta with
+  (* Not solved *)
+  | None, _ ->
+    Some ctx_u
+
+  (* Solved with no meta arg, no need to descend *)
+  | Some _, None ->
+    None
+
+  (* If we have a meta annotation, we recurse to see if the uvar
+   * is actually solved, instead of being resolved to yet another uvar.
+   * In that case, while we are keeping track of that uvar, we must not
+   * forget the meta annotation in case this second uvar is not solved.
+   * See #1561. *)
+  | Some r, Some _ ->
+    match (SS.compress r).n with
+    | Tm_uvar (ctx_u', _) -> get_unresolved ctx_u'
+    | _ -> None (* really solved *)
+
 let resolve_implicits' env must_total forcelax g =
-  let rec unresolved ctx_u =
-    match (Unionfind.find ctx_u.ctx_uvar_head) with
-    | Some r ->
-        begin match ctx_u.ctx_uvar_meta with
-        | None -> false
-        (* If we have a meta annotation, we recurse to see if the uvar
-         * is actually solved, instead of being resolved to yet another uvar.
-         * In that case, while we are keeping track of that uvar, we must not
-         * forget the meta annotation in case this second uvar is not solved.
-         * See #1561. *)
-        | Some _ ->
-            begin match (SS.compress r).n with
-            | Tm_uvar (ctx_u', _) -> unresolved ctx_u'
-            | _ -> false
-            end
-        end
-    | None -> true
-  in
   let rec until_fixpoint (acc: Env.implicits * bool) (implicits:Env.implicits) : Env.implicits =
     let out, changed = acc in
     match implicits with
@@ -3668,26 +3675,49 @@ let resolve_implicits' env must_total forcelax g =
           let { imp_reason = reason; imp_tm = tm; imp_uvar = ctx_u; imp_range = r } = hd in
           if ctx_u.ctx_uvar_should_check = Allow_unresolved
           then until_fixpoint(out, true) tl
-          else if unresolved ctx_u
-          then begin match ctx_u.ctx_uvar_meta with
-               | None ->
-                    until_fixpoint (hd::out, changed) tl
-               | Some (env_dyn, tau) ->
-                    let env : Env.env = FStar.Dyn.undyn env_dyn in
-                    if Env.debug env (Options.Other "Tac") then
-                        BU.print1 "Running tactic for meta-arg %s\n" (Print.ctx_uvar_to_string ctx_u);
-                    let t = env.synth_hook env hd.imp_uvar.ctx_uvar_typ tau in
-                    // let the unifier handle setting the variable
-                    let extra =
-                        match teq_nosmt env t tm with
-                        | None -> failwith "resolve_implicits: unifying with an unresolved uvar failed?"
-                        | Some g -> g.implicits
-                    in
-                    let ctx_u = { ctx_u with ctx_uvar_meta = None } in
-                    let hd = { hd with imp_uvar = ctx_u } in
-                    until_fixpoint (out, true) (extra @ tl)
-               end
-          else if ctx_u.ctx_uvar_should_check = Allow_untyped
+          else begin match get_unresolved ctx_u, ctx_u.ctx_uvar_meta with
+          (* Not solved, but no meta *)
+          | Some _, None ->
+             until_fixpoint (hd::out, changed) tl
+
+          (* Not solved, run meta *)
+          | Some ctx_u', Some (env_dyn, tau) ->
+            let m_env : Env.env = FStar.Dyn.undyn env_dyn in
+
+            (* This step is important: if u is solved to u', use the gamma
+             * from u' since it may be smaller than that of u. Computing
+             * a solution in the gamma of u would make the unification below
+             * fail mysteriously (see issue #1963) *)
+            let m_env = { m_env with gamma = ctx_u'.ctx_uvar_gamma } in
+
+            if Env.debug env (Options.Other "Tac") then
+                BU.print1 "Running tactic for meta-arg %s\n" (Print.ctx_uvar_to_string ctx_u);
+
+            if Env.debug env (Options.Other "Tac") then
+                BU.print1 "Pointing to %s\n" (Print.ctx_uvar_to_string ctx_u');
+
+            let t = m_env.synth_hook m_env ctx_u'.ctx_uvar_typ tau in
+
+            if Env.debug env (Options.Other "Tac") then
+              BU.print1 "Got solution (%s)\n" (Print.term_to_string t);
+
+            // let the unifier handle setting the variable
+            let extra =
+                match teq_nosmt m_env t tm with
+                | None -> failwith "resolve_implicits: unifying with an unresolved uvar failed?"
+                | Some g -> g.implicits
+            in
+
+            if Env.debug env (Options.Other "Tac") then
+              BU.print_string "Unified meta-arg OK\n";
+
+            let ctx_u = { ctx_u with ctx_uvar_meta = None } in
+            let hd = { hd with imp_uvar = ctx_u } in
+            until_fixpoint (out, true) (extra @ tl)
+
+        (* Solved *)
+        | None, _ ->
+          if ctx_u.ctx_uvar_should_check = Allow_untyped
           then until_fixpoint(out, true) tl
           else let env = {env with gamma=ctx_u.ctx_uvar_gamma} in
                let tm = norm_with_steps "FStar.TypeChecker.Rel.norm_with_steps.8" [Env.Beta] env tm in
@@ -3720,7 +3750,9 @@ let resolve_implicits' env must_total forcelax g =
                  | Some g -> g
                  | None   -> failwith "Impossible, with use_smt = true, discharge_guard' should never have returned None"
                in
-               until_fixpoint (g'.implicits@out, true) tl in
+               until_fixpoint (g'.implicits@out, true) tl
+            end
+  in
   {g with implicits=until_fixpoint ([], false) g.implicits}
 
 let resolve_implicits env g = resolve_implicits' env (not env.phase1 && not env.lax)  false g
