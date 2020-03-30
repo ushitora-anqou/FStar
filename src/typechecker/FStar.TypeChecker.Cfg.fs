@@ -158,7 +158,6 @@ let fstep_add_one s fs =
     | Eager_unfolding -> fs // eager_unfolding is not a step
     | Inlining -> fs // not a step // ZP : Adding qualification because of name clash
     | DoNotUnfoldPureLets ->  { fs with do_not_unfold_pure_lets = true }
-    | ReduceDivLets ->  { fs with reduce_div_lets = true }
     | UnfoldUntil d -> { fs with unfold_until = Some d }
     | UnfoldOnly  lids -> { fs with unfold_only  = Some lids }
     | UnfoldFully lids -> { fs with unfold_fully = Some lids }
@@ -168,7 +167,7 @@ let fstep_add_one s fs =
     | Simplify ->  { fs with simplify = true }
     | EraseUniverses ->  { fs with erase_universes = true }
     | AllowUnboundUniverses ->  { fs with allow_unbound_universes = true }
-    | Reify ->  { fs with reify_ = true }
+    | Reify ->  { fs with reify_ = true; reduce_div_lets = true }
     | CompressUvars ->  { fs with compress_uvars = true }
     | NoFullNorm ->  { fs with no_full_norm = true }
     | CheckNoUvars ->  { fs with check_no_uvars = true }
