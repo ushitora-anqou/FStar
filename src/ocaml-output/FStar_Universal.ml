@@ -110,7 +110,9 @@ let with_dsenv_of_tcenv :
                FStar_TypeChecker_Env.strict_args_tab =
                  (uu___8_51.FStar_TypeChecker_Env.strict_args_tab);
                FStar_TypeChecker_Env.erasable_types_tab =
-                 (uu___8_51.FStar_TypeChecker_Env.erasable_types_tab)
+                 (uu___8_51.FStar_TypeChecker_Env.erasable_types_tab);
+               FStar_TypeChecker_Env.enable_defer_to_tac =
+                 (uu___8_51.FStar_TypeChecker_Env.enable_defer_to_tac)
              }))
   
 let with_tcenv_of_env :
@@ -379,7 +381,9 @@ let (init_env : FStar_Parser_Dep.deps -> FStar_TypeChecker_Env.env) =
         FStar_TypeChecker_Env.strict_args_tab =
           (uu___72_410.FStar_TypeChecker_Env.strict_args_tab);
         FStar_TypeChecker_Env.erasable_types_tab =
-          (uu___72_410.FStar_TypeChecker_Env.erasable_types_tab)
+          (uu___72_410.FStar_TypeChecker_Env.erasable_types_tab);
+        FStar_TypeChecker_Env.enable_defer_to_tac =
+          (uu___72_410.FStar_TypeChecker_Env.enable_defer_to_tac)
       }  in
     let env2 =
       let uu___75_412 = env1  in
@@ -475,7 +479,9 @@ let (init_env : FStar_Parser_Dep.deps -> FStar_TypeChecker_Env.env) =
         FStar_TypeChecker_Env.strict_args_tab =
           (uu___75_412.FStar_TypeChecker_Env.strict_args_tab);
         FStar_TypeChecker_Env.erasable_types_tab =
-          (uu___75_412.FStar_TypeChecker_Env.erasable_types_tab)
+          (uu___75_412.FStar_TypeChecker_Env.erasable_types_tab);
+        FStar_TypeChecker_Env.enable_defer_to_tac =
+          (uu___75_412.FStar_TypeChecker_Env.enable_defer_to_tac)
       }  in
     let env3 =
       let uu___78_414 = env2  in
@@ -570,7 +576,9 @@ let (init_env : FStar_Parser_Dep.deps -> FStar_TypeChecker_Env.env) =
         FStar_TypeChecker_Env.strict_args_tab =
           (uu___78_414.FStar_TypeChecker_Env.strict_args_tab);
         FStar_TypeChecker_Env.erasable_types_tab =
-          (uu___78_414.FStar_TypeChecker_Env.erasable_types_tab)
+          (uu___78_414.FStar_TypeChecker_Env.erasable_types_tab);
+        FStar_TypeChecker_Env.enable_defer_to_tac =
+          (uu___78_414.FStar_TypeChecker_Env.enable_defer_to_tac)
       }  in
     let env4 =
       let uu___81_416 = env3  in
@@ -666,7 +674,9 @@ let (init_env : FStar_Parser_Dep.deps -> FStar_TypeChecker_Env.env) =
         FStar_TypeChecker_Env.strict_args_tab =
           (uu___81_416.FStar_TypeChecker_Env.strict_args_tab);
         FStar_TypeChecker_Env.erasable_types_tab =
-          (uu___81_416.FStar_TypeChecker_Env.erasable_types_tab)
+          (uu___81_416.FStar_TypeChecker_Env.erasable_types_tab);
+        FStar_TypeChecker_Env.enable_defer_to_tac =
+          (uu___81_416.FStar_TypeChecker_Env.enable_defer_to_tac)
       }  in
     let env5 =
       let uu___84_418 = env4  in
@@ -762,7 +772,9 @@ let (init_env : FStar_Parser_Dep.deps -> FStar_TypeChecker_Env.env) =
         FStar_TypeChecker_Env.strict_args_tab =
           (uu___84_418.FStar_TypeChecker_Env.strict_args_tab);
         FStar_TypeChecker_Env.erasable_types_tab =
-          (uu___84_418.FStar_TypeChecker_Env.erasable_types_tab)
+          (uu___84_418.FStar_TypeChecker_Env.erasable_types_tab);
+        FStar_TypeChecker_Env.enable_defer_to_tac =
+          (uu___84_418.FStar_TypeChecker_Env.enable_defer_to_tac)
       }  in
     let env6 =
       let uu___87_420 = env5  in
@@ -858,7 +870,9 @@ let (init_env : FStar_Parser_Dep.deps -> FStar_TypeChecker_Env.env) =
         FStar_TypeChecker_Env.strict_args_tab =
           (uu___87_420.FStar_TypeChecker_Env.strict_args_tab);
         FStar_TypeChecker_Env.erasable_types_tab =
-          (uu___87_420.FStar_TypeChecker_Env.erasable_types_tab)
+          (uu___87_420.FStar_TypeChecker_Env.erasable_types_tab);
+        FStar_TypeChecker_Env.enable_defer_to_tac =
+          (uu___87_420.FStar_TypeChecker_Env.enable_defer_to_tac)
       }  in
     (env6.FStar_TypeChecker_Env.solver).FStar_TypeChecker_Env.init env6; env6
   
@@ -1490,43 +1504,41 @@ let (batch_mode_tc :
   =
   fun filenames  ->
     fun dep_graph1  ->
-      (let uu____2293 =
-         FStar_Options.debug_at_level_no_module (FStar_Options.Other "Dep")
-          in
+      (let uu____2293 = FStar_Options.debug_any ()  in
        if uu____2293
        then
          (FStar_Util.print_endline "Auto-deps kicked in; here's some info.";
           FStar_Util.print1
             "Here's the list of filenames we will process: %s\n"
             (FStar_String.concat " " filenames);
-          (let uu____2302 =
-             let uu____2304 =
+          (let uu____2301 =
+             let uu____2303 =
                FStar_All.pipe_right filenames
                  (FStar_List.filter FStar_Options.should_verify_file)
                 in
-             FStar_String.concat " " uu____2304  in
+             FStar_String.concat " " uu____2303  in
            FStar_Util.print1
-             "Here's the list of modules we will verify: %s\n" uu____2302))
+             "Here's the list of modules we will verify: %s\n" uu____2301))
        else ());
       (let env =
-         let uu____2320 = init_env dep_graph1  in
-         FStar_Extraction_ML_UEnv.mkContext uu____2320  in
-       let uu____2321 = tc_fold_interleave dep_graph1 ([], [], env) filenames
+         let uu____2319 = init_env dep_graph1  in
+         FStar_Extraction_ML_UEnv.mkContext uu____2319  in
+       let uu____2320 = tc_fold_interleave dep_graph1 ([], [], env) filenames
           in
-       match uu____2321 with
+       match uu____2320 with
        | (all_mods,mllibs,env1) ->
            (emit mllibs;
             (let solver_refresh env2 =
-               let uu____2365 =
+               let uu____2364 =
                  with_tcenv_of_env env2
                    (fun tcenv  ->
-                      (let uu____2374 =
+                      (let uu____2373 =
                          (FStar_Options.interactive ()) &&
-                           (let uu____2377 = FStar_Errors.get_err_count ()
+                           (let uu____2376 = FStar_Errors.get_err_count ()
                                in
-                            uu____2377 = Prims.int_zero)
+                            uu____2376 = Prims.int_zero)
                           in
-                       if uu____2374
+                       if uu____2373
                        then
                          (tcenv.FStar_TypeChecker_Env.solver).FStar_TypeChecker_Env.refresh
                            ()
@@ -1535,6 +1547,6 @@ let (batch_mode_tc :
                            ());
                       ((), tcenv))
                   in
-               FStar_All.pipe_left FStar_Pervasives_Native.snd uu____2365  in
+               FStar_All.pipe_left FStar_Pervasives_Native.snd uu____2364  in
              (all_mods, env1, solver_refresh))))
   
