@@ -2114,40 +2114,50 @@ let (decl_to_string : decl -> Prims.string) =
         Prims.op_Hat "new_effect " i.FStar_Ident.idText
     | NewEffect (RedefineEffect (i,uu____9075,uu____9076)) ->
         Prims.op_Hat "new_effect " i.FStar_Ident.idText
+    | LayeredEffect (DefineEffect (i,uu____9083,uu____9084,uu____9085)) ->
+        Prims.op_Hat "layered_effect " i.FStar_Ident.idText
+    | LayeredEffect (RedefineEffect (i,uu____9096,uu____9097)) ->
+        Prims.op_Hat "layered_effect " i.FStar_Ident.idText
+    | Polymonadic_bind (l1,l2,l3,uu____9106) ->
+        let uu____9107 = FStar_Ident.string_of_lid l1  in
+        let uu____9109 = FStar_Ident.string_of_lid l2  in
+        let uu____9111 = FStar_Ident.string_of_lid l3  in
+        FStar_Util.format3 "polymonadic_bind (%s, %s) |> %s" uu____9107
+          uu____9109 uu____9111
     | Splice (ids,t) ->
-        let uu____9088 =
-          let uu____9090 =
-            let uu____9092 =
+        let uu____9120 =
+          let uu____9122 =
+            let uu____9124 =
               FStar_List.map (fun i  -> i.FStar_Ident.idText) ids  in
-            FStar_All.pipe_left (FStar_String.concat ";") uu____9092  in
-          let uu____9104 =
-            let uu____9106 =
-              let uu____9108 = term_to_string t  in
-              Prims.op_Hat uu____9108 ")"  in
-            Prims.op_Hat "] (" uu____9106  in
-          Prims.op_Hat uu____9090 uu____9104  in
-        Prims.op_Hat "splice[" uu____9088
-    | SubEffect uu____9113 -> "sub_effect"
-    | Pragma uu____9115 -> "pragma"
+            FStar_All.pipe_left (FStar_String.concat ";") uu____9124  in
+          let uu____9136 =
+            let uu____9138 =
+              let uu____9140 = term_to_string t  in
+              Prims.op_Hat uu____9140 ")"  in
+            Prims.op_Hat "] (" uu____9138  in
+          Prims.op_Hat uu____9122 uu____9136  in
+        Prims.op_Hat "splice[" uu____9120
+    | SubEffect uu____9145 -> "sub_effect"
+    | Pragma uu____9147 -> "pragma"
   
 let (modul_to_string : modul -> Prims.string) =
   fun m  ->
     match m with
-    | Module (uu____9125,decls) ->
-        let uu____9131 =
+    | Module (uu____9157,decls) ->
+        let uu____9163 =
           FStar_All.pipe_right decls (FStar_List.map decl_to_string)  in
-        FStar_All.pipe_right uu____9131 (FStar_String.concat "\n")
-    | Interface (uu____9146,decls,uu____9148) ->
-        let uu____9155 =
+        FStar_All.pipe_right uu____9163 (FStar_String.concat "\n")
+    | Interface (uu____9178,decls,uu____9180) ->
+        let uu____9187 =
           FStar_All.pipe_right decls (FStar_List.map decl_to_string)  in
-        FStar_All.pipe_right uu____9155 (FStar_String.concat "\n")
+        FStar_All.pipe_right uu____9187 (FStar_String.concat "\n")
   
 let (decl_is_val : FStar_Ident.ident -> decl -> Prims.bool) =
   fun id1  ->
     fun decl  ->
       match decl.d with
-      | Val (id',uu____9184) -> FStar_Ident.ident_equals id1 id'
-      | uu____9185 -> false
+      | Val (id',uu____9216) -> FStar_Ident.ident_equals id1 id'
+      | uu____9217 -> false
   
 let (thunk : term -> term) =
   fun ens  ->
@@ -2165,9 +2175,9 @@ let (idents_of_binders :
               match b.b with
               | Variable i -> i
               | TVariable i -> i
-              | Annotated (i,uu____9223) -> i
-              | TAnnotated (i,uu____9225) -> i
-              | NoName uu____9226 ->
+              | Annotated (i,uu____9255) -> i
+              | TAnnotated (i,uu____9257) -> i
+              | NoName uu____9258 ->
                   FStar_Errors.raise_error
                     (FStar_Errors.Fatal_MissingQuantifierBinder,
                       "Wildcard binders in quantifiers are not allowed") r))
