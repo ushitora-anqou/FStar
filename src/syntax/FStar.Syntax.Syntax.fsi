@@ -513,8 +513,6 @@ val mod_name: modul -> lident
 
 type path = list<string>
 type subst_t = list<subst_elt>
-type mk_t_a<'a> = option<unit> -> range -> syntax<'a>
-type mk_t = mk_t_a<term'>
 
 val contains_reflectable:  list<qualifier> -> bool
 
@@ -522,15 +520,15 @@ val withsort: 'a -> withinfo_t<'a>
 val withinfo: 'a -> Range.range -> withinfo_t<'a>
 
 (* Constructors for each term form; NO HASH CONSING; just makes all the auxiliary data at each node *)
-val mk: 'a -> Tot<mk_t_a<'a>>
+val mk: 'a -> range -> syntax<'a>
 
 val mk_lb :         (lbname * list<univ_name> * lident * typ * term * list<attribute> * range) -> letbinding
 val default_sigmeta: sig_metadata
 val mk_sigelt:      sigelt' -> sigelt // FIXME check uses
-val mk_Tm_app:      term -> args -> Tot<mk_t>
+val mk_Tm_app:      term -> args -> range -> term
 val mk_Tm_uinst:    term -> universes -> term
-val extend_app:     term -> arg -> Tot<mk_t>
-val extend_app_n:   term -> args -> Tot<mk_t>
+val extend_app:     term -> arg -> range -> term
+val extend_app_n:   term -> args -> range -> term
 val mk_Tm_delayed:  (term * subst_ts) -> Range.range -> term
 val mk_Total:       typ -> comp
 val mk_GTotal:      typ -> comp

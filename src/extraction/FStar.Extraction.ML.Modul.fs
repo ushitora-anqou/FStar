@@ -49,8 +49,7 @@ type env_t = UEnv.uenv
 let fail_exp (lid:lident) (t:typ) =
     mk (Tm_app(S.fvar PC.failwith_lid delta_constant None, //NS delta: wrong
                [ S.iarg t
-               ; S.as_arg <| mk (Tm_constant (Const_string ("Not yet implemented:"^(Print.lid_to_string lid), Range.dummyRange))) None Range.dummyRange]))
-        None
+               ; S.as_arg <| mk (Tm_constant (Const_string ("Not yet implemented:"^(Print.lid_to_string lid), Range.dummyRange))) Range.dummyRange]))
         Range.dummyRange
 
 let always_fail lid t =
@@ -489,7 +488,7 @@ let extract_reifiable_effect g ed
         let lbname = Inl (S.new_bv (Some a.action_defn.pos) tun) in
         let lb = mk_lb (lbname, a.action_univs, PC.effect_Tot_lid, a.action_typ, a.action_defn, [], a.action_defn.pos) in
         let lbs = (false, [lb]) in
-        let action_lb = mk (Tm_let(lbs, U.exp_false_bool)) None a.action_defn.pos in
+        let action_lb = mk (Tm_let(lbs, U.exp_false_bool)) a.action_defn.pos in
         let a_let, _, ty = Term.term_as_mlexpr g action_lb in
         if Env.debug g.env_tcenv <| Options.Other "ExtractionReify" then
             BU.print1 "Extracted action term: %s\n" (Code.string_of_mlexpr a_nm a_let);
@@ -839,7 +838,7 @@ let rec extract_sig (g:env_t) (se:sigelt) : env_t * list<mlmodule1> =
           let ml_let, _, _ =
             Term.term_as_mlexpr
                     g
-                    (mk (Tm_let(lbs, U.exp_false_bool)) None se.sigrng)
+                    (mk (Tm_let(lbs, U.exp_false_bool)) se.sigrng)
           in
           begin
           match ml_let.expr with

@@ -990,7 +990,7 @@ and encode_term (t:typ) (env:env_t) : (term         (* encoding of t, expects t 
             let e0 = TcUtil.reify_body_with_arg env.tcenv [] head (List.hd args_e) in
             if Env.debug env.tcenv <| Options.Other "SMTEncodingReify"
             then BU.print1 "Result of normalization %s\n" (Print.term_to_string e0);
-            let e = S.mk_Tm_app (TcUtil.remove_reify e0) (List.tl args_e) None t0.pos in
+            let e = S.mk_Tm_app (TcUtil.remove_reify e0) (List.tl args_e) t0.pos in
             encode_term e env
 
         | Tm_constant (Const_reflect _), [(arg, _)] ->
@@ -1294,7 +1294,7 @@ and encode_let
 
 and encode_match (e:S.term) (pats:list<S.branch>) (default_case:term) (env:env_t)
                  (encode_br:S.term -> env_t -> (term * decls_t)) : term * decls_t =
-    let scrsym, scr', env = gen_term_var env (S.null_bv (S.mk S.Tm_unknown None Range.dummyRange)) in
+    let scrsym, scr', env = gen_term_var env (S.null_bv (S.mk S.Tm_unknown Range.dummyRange)) in
     let scr, decls = encode_term e env in
     let match_tm, decls =
       let encode_branch b (else_case, decls) =
@@ -1544,7 +1544,7 @@ and encode_formula (phi:typ) (env:env_t) : (term * decls_t)  = (* expects phi to
             | Tm_fvar fv, [(r, _); (msg, _); (phi, _)] when S.fv_eq_lid fv Const.labeled_lid -> //interpret (labeled r msg t) as Tm_meta(t, Meta_labeled(msg, r, false)
               begin match (SS.compress r).n, (SS.compress msg).n with
                 | Tm_constant (Const_range r), Tm_constant (Const_string (s, _)) ->
-                  let phi = S.mk (Tm_meta(phi,  Meta_labeled(s, r, false))) None r in
+                  let phi = S.mk (Tm_meta(phi,  Meta_labeled(s, r, false))) r in
                   fallback phi
                 | _ ->
                   fallback phi

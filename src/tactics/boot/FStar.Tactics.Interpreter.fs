@@ -323,7 +323,7 @@ and unembed_tactic_1<'a,'r> (ea:embedding<'a>) (er:embedding<'r>) (f:term) (ncb:
     fun x ->
       let rng = FStar.Range.dummyRange  in
       let x_tm = embed ea rng x ncb in
-      let app = S.mk_Tm_app f [as_arg x_tm] None rng in
+      let app = S.mk_Tm_app f [as_arg x_tm] rng in
       unembed_tactic_0 er app ncb
 
 //IN F*: and unembed_tactic_0 (#b:Type) (eb:embedding b) (embedded_tac_b:term) (ncb:norm_cb) : tac b =
@@ -336,7 +336,6 @@ and unembed_tactic_0<'b> (eb:embedding<'b>) (embedded_tac_b:term) (ncb:norm_cb) 
 
     let tm = S.mk_Tm_app embedded_tac_b
                          [S.as_arg (embed E.e_proofstate rng proof_state ncb)]
-                          None
                           rng in
 
 
@@ -409,7 +408,7 @@ let unembed_tactic_1_alt<'a,'r> (ea:embedding<'a>) (er:embedding<'r>) (f:term) (
     Some (fun x ->
       let rng = FStar.Range.dummyRange  in
       let x_tm = embed ea rng x ncb in
-      let app = S.mk_Tm_app f [as_arg x_tm] None rng in
+      let app = S.mk_Tm_app f [as_arg x_tm] rng in
       unembed_tactic_0 er app ncb)
 
 //IN F*: let e_tactic_1_alt (#a:Type) (#r:Type) (ea : embedding a) (er : embedding r) : embedding (a -> (proofstate -> __result r)) =
@@ -783,7 +782,7 @@ let preprocess (env:Env.env) (goal:term) : list<(Env.env * term * FStar.Options.
 let synthesize (env:Env.env) (typ:typ) (tau:term) : term =
     // Don't run the tactic (and end with a magic) when nosynth is set, cf. issue #73 in fstar-mode.el
     if env.nosynth
-    then mk_Tm_app (TcUtil.fvar_const env PC.magic_lid) [S.as_arg U.exp_unit] None typ.pos
+    then mk_Tm_app (TcUtil.fvar_const env PC.magic_lid) [S.as_arg U.exp_unit] typ.pos
     else begin
     tacdbg := Env.debug env (Options.Other "Tac");
 
