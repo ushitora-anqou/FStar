@@ -2440,9 +2440,7 @@ let (resugar_sigelt' :
           then FStar_Pervasives_Native.None
           else
             (let mk1 e =
-               FStar_Syntax_Syntax.mk e FStar_Pervasives_Native.None
-                 se.FStar_Syntax_Syntax.sigrng
-                in
+               FStar_Syntax_Syntax.mk e se.FStar_Syntax_Syntax.sigrng  in
              let dummy = mk1 FStar_Syntax_Syntax.Tm_unknown  in
              let desugared_let =
                mk1 (FStar_Syntax_Syntax.Tm_let (lbs, dummy))  in

@@ -2455,7 +2455,7 @@ let (sc_typ :
             match uu____6995 with
             | FStar_Pervasives_Native.None  ->
                 FStar_Syntax_Syntax.mk FStar_Syntax_Syntax.Tm_unknown
-                  FStar_Pervasives_Native.None FStar_Range.dummyRange
+                  FStar_Range.dummyRange
             | FStar_Pervasives_Native.Some ((uu____7014,typ),uu____7016) ->
                 typ
              in
