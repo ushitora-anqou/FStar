@@ -401,7 +401,7 @@ let quote_vm (#a:Type) (ta: term) (quotea:a -> Tac term) (vm:vmap a) : Tac term 
  *)
 [@canon_attr]
 let interp_var (#a:Type) (vm:vmap a) (i:index) =
-  match List.Tot.assoc i (fst vm) with
+  match List.Tot.Base.assoc i (fst vm) with
   | Some x -> x
   | _ -> snd vm
 
@@ -1590,7 +1590,7 @@ let reification (#a:Type)
         let (e, vs, vm) = reification_aux unquotea vs vm add opp mone mult t
         in (e::es, vs, vm))
       ([],[], ([], munit)) ts
-  in (List.rev es, vm)
+  in (List.Tot.Base.rev es, vm)
 
 (* The implicit argument in the application of `Pconst` is crucial *)
 let rec quote_polynomial (#a:Type) (ta:term) (quotea:a -> Tac term) (e:polynomial a) : Tac term =
@@ -1615,7 +1615,7 @@ let semiring_reflect (#a:eqtype) (r:cr a) (vm:vmap a) (e1 e2:polynomial a) (a1 a
   polynomial_simplify_ok r vm e1;
   polynomial_simplify_ok r vm e2
 
-[@plugin]
+(* [@plugin] *)
 let canon_semiring_aux
     (a: Type) (ta: term) (unquotea: term -> Tac a) (quotea: a -> Tac term)
     (tr tadd topp tmone tmult: term)
