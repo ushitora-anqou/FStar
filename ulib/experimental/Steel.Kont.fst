@@ -119,6 +119,7 @@ let example () : steelK unit emp (fun _ -> q 1 `star` q 2) =
   let (p1,p2) = p1p2 in
   kjoin p1;;
   kframe (q 1) begin
+    h ();;
     kjoin p2;;
     kframe (q 2) begin
       return ()
