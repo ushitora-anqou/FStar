@@ -19,10 +19,17 @@ module Bug379
 val test1 : nat -> nat -> Tot nat
 let rec test1 x y = if x = 0 then y else test1 0 y
 
-(* Still fails *)
+(* Now accepted since we flatten arrow types *)
 val test2 : nat -> Tot (nat -> Tot nat)
 let rec test2 x y = if x = 0 then y else test2 0 y
 
 (* Now works too *)
 val test3 : nat -> Tot ( nat -> Dv nat)
 let rec test3 x y = if x = 0 then y else test3 0 y
+
+(* Alternatives, do not work because of arity check.. *)
+// val test2' : nat -> Tot (nat -> Tot nat)
+// let rec test2' x = let f y = if x = 0 then y else test2 0 y in f
+//
+// val test3' : nat -> Tot (nat -> Dv nat)
+// let rec test3' x = let f y = if x = 0 then y else test3 0 y in f
