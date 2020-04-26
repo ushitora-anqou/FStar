@@ -402,6 +402,7 @@ let guard_letrecs env actuals expected_c : list<(lbname*typ*univ_names)> =
 
         let previous_dec = decreases_clause actuals expected_c in
         let guard_one_letrec (l, t, u_names) =
+            let t = U.canon_arrow t in
             match (SS.compress t).n with
                 | Tm_arrow(formals, c) ->
                   //make sure they all have non-null names
@@ -1340,6 +1341,7 @@ and tc_abs_expected_function_typ env (bs:binders) t0 (body:term)
     None, bs, [], None, envbody, body, g_env
 
   | Some t ->
+    let t = U.canon_arrow t in
     let t = SS.compress t in
     let rec as_function_typ norm t =
       match (SS.compress t).n with
