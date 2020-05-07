@@ -1509,7 +1509,13 @@ and desugar_term_maybe_top (top_level:bool) (env:env_t) (top:term) : S.term * an
           let x = FStar.Ident.gen e.range in
           let xterm = mk_term (Var (lid_of_ids [x])) (range_of_id x) Expr in
           let record = Record(None, record.fields |> List.map (fun (f, _) -> get_field (Some xterm) f)) in
-          Let(NoLetQualifier, [None, (mk_pattern (PatVar (x, None)) (range_of_id x), e)], mk_term record top.range top.level) in
+          let attrs =
+            if Options.ml_ish ()
+            then None
+            else Some [mk_term (Name C.inline_let_attr) (range_of_id x) Expr]
+          in
+          Let(NoLetQualifier, [attrs, (mk_pattern (PatVar (x, None)) (range_of_id x), e)], mk_term record top.range top.level)
+      in
 
       let recterm = mk_term recterm top.range top.level in
       let e, s = desugar_term_aq env recterm in
