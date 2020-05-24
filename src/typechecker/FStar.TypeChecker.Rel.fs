@@ -3937,7 +3937,7 @@ let resolve_implicits env g =
                     (guard_to_string env g);
     resolve_implicits' env (not env.phase1 && not env.lax) false g
 
-let resolve_implicits_tac env g = resolve_implicits' env false true  g
+let resolve_implicits_tac env g = resolve_implicits' env true true  g
 
 let force_trivial_guard env g =
     if Env.debug env <| Options.Other "ResolveImplicitsHook"
