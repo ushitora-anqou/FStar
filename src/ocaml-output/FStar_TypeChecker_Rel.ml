@@ -12013,7 +12013,7 @@ let (resolve_implicits :
 let (resolve_implicits_tac :
   FStar_TypeChecker_Env.env ->
     FStar_TypeChecker_Common.guard_t -> FStar_TypeChecker_Common.guard_t)
-  = fun env -> fun g -> resolve_implicits' env false true g
+  = fun env -> fun g -> resolve_implicits' env true true g
 let (force_trivial_guard :
   FStar_TypeChecker_Env.env -> FStar_TypeChecker_Common.guard_t -> unit) =
   fun env ->
