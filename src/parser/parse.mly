@@ -1036,12 +1036,6 @@ projectionLHS:
           | Some (level, t) -> mk_term (Ascribed(e,{t with level=level},None)) (rhs2 parseState 1 4) level
         in mk_term (Paren e1) (rhs2 parseState 1 4) (e.level)
       }
-  | LBRACK_BAR es=semiColonTermList BAR_RBRACK
-      {
-        let l = mkConsList (rhs2 parseState 1 3) es in
-        let pos = (rhs2 parseState 1 3) in
-        mkExplicitApp (mk_term (Var (array_of_list_lid)) pos Expr) [l] pos
-      }
   | LBRACK es=semiColonTermList RBRACK
       { mkConsList (rhs2 parseState 1 3) es }
   | PERCENT_LBRACK es=semiColonTermList RBRACK
