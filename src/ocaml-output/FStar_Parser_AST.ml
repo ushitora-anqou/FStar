@@ -1790,193 +1790,201 @@ and (aqual_to_string :
     match uu___7_8658 with
     | FStar_Pervasives_Native.Some (Equality) -> "$"
     | FStar_Pervasives_Native.Some (Implicit) -> "#"
-    | uu____8664 -> ""
+    | FStar_Pervasives_Native.Some (Meta (Arg_qualifier_meta_tac t)) ->
+        let uu____8665 =
+          let uu____8667 = term_to_string t in Prims.op_Hat uu____8667 "]" in
+        Prims.op_Hat "#[" uu____8665
+    | FStar_Pervasives_Native.Some (Meta (Arg_qualifier_meta_attr t)) ->
+        let uu____8672 =
+          let uu____8674 = term_to_string t in Prims.op_Hat uu____8674 "]" in
+        Prims.op_Hat "[@@" uu____8672
+    | FStar_Pervasives_Native.None -> ""
 and (pat_to_string : pattern -> Prims.string) =
   fun x ->
     match x.pat with
     | PatWild (FStar_Pervasives_Native.None) -> "_"
-    | PatWild uu____8671 -> "#_"
+    | PatWild uu____8682 -> "#_"
     | PatConst c -> FStar_Parser_Const.const_to_string c
     | PatApp (p, ps) ->
-        let uu____8682 = FStar_All.pipe_right p pat_to_string in
-        let uu____8685 = to_string_l " " pat_to_string ps in
-        FStar_Util.format2 "(%s %s)" uu____8682 uu____8685
+        let uu____8693 = FStar_All.pipe_right p pat_to_string in
+        let uu____8696 = to_string_l " " pat_to_string ps in
+        FStar_Util.format2 "(%s %s)" uu____8693 uu____8696
     | PatTvar (i, aq) ->
-        let uu____8695 = aqual_to_string aq in
-        let uu____8697 = FStar_Ident.string_of_id i in
-        FStar_Util.format2 "%s%s" uu____8695 uu____8697
-    | PatVar (i, aq) ->
         let uu____8706 = aqual_to_string aq in
         let uu____8708 = FStar_Ident.string_of_id i in
         FStar_Util.format2 "%s%s" uu____8706 uu____8708
+    | PatVar (i, aq) ->
+        let uu____8717 = aqual_to_string aq in
+        let uu____8719 = FStar_Ident.string_of_id i in
+        FStar_Util.format2 "%s%s" uu____8717 uu____8719
     | PatName l -> FStar_Ident.string_of_lid l
     | PatList l ->
-        let uu____8715 = to_string_l "; " pat_to_string l in
-        FStar_Util.format1 "[%s]" uu____8715
+        let uu____8726 = to_string_l "; " pat_to_string l in
+        FStar_Util.format1 "[%s]" uu____8726
     | PatTuple (l, false) ->
-        let uu____8726 = to_string_l ", " pat_to_string l in
-        FStar_Util.format1 "(%s)" uu____8726
-    | PatTuple (l, true) ->
         let uu____8737 = to_string_l ", " pat_to_string l in
-        FStar_Util.format1 "(|%s|)" uu____8737
+        FStar_Util.format1 "(%s)" uu____8737
+    | PatTuple (l, true) ->
+        let uu____8748 = to_string_l ", " pat_to_string l in
+        FStar_Util.format1 "(|%s|)" uu____8748
     | PatRecord l ->
-        let uu____8748 =
+        let uu____8759 =
           to_string_l "; "
-            (fun uu____8760 ->
-               match uu____8760 with
+            (fun uu____8771 ->
+               match uu____8771 with
                | (f, e) ->
-                   let uu____8768 = FStar_Ident.string_of_lid f in
-                   let uu____8770 = FStar_All.pipe_right e pat_to_string in
-                   FStar_Util.format2 "%s=%s" uu____8768 uu____8770) l in
-        FStar_Util.format1 "{%s}" uu____8748
+                   let uu____8779 = FStar_Ident.string_of_lid f in
+                   let uu____8781 = FStar_All.pipe_right e pat_to_string in
+                   FStar_Util.format2 "%s=%s" uu____8779 uu____8781) l in
+        FStar_Util.format1 "{%s}" uu____8759
     | PatOr l -> to_string_l "|\n " pat_to_string l
     | PatOp op ->
-        let uu____8780 = FStar_Ident.string_of_id op in
-        FStar_Util.format1 "(%s)" uu____8780
+        let uu____8791 = FStar_Ident.string_of_id op in
+        FStar_Util.format1 "(%s)" uu____8791
     | PatAscribed (p, (t, FStar_Pervasives_Native.None)) ->
-        let uu____8793 = FStar_All.pipe_right p pat_to_string in
-        let uu____8796 = FStar_All.pipe_right t term_to_string in
-        FStar_Util.format2 "(%s:%s)" uu____8793 uu____8796
+        let uu____8804 = FStar_All.pipe_right p pat_to_string in
+        let uu____8807 = FStar_All.pipe_right t term_to_string in
+        FStar_Util.format2 "(%s:%s)" uu____8804 uu____8807
     | PatAscribed (p, (t, FStar_Pervasives_Native.Some tac)) ->
-        let uu____8811 = FStar_All.pipe_right p pat_to_string in
-        let uu____8814 = FStar_All.pipe_right t term_to_string in
-        let uu____8817 = FStar_All.pipe_right tac term_to_string in
-        FStar_Util.format3 "(%s:%s by %s)" uu____8811 uu____8814 uu____8817
+        let uu____8822 = FStar_All.pipe_right p pat_to_string in
+        let uu____8825 = FStar_All.pipe_right t term_to_string in
+        let uu____8828 = FStar_All.pipe_right tac term_to_string in
+        FStar_Util.format3 "(%s:%s by %s)" uu____8822 uu____8825 uu____8828
 and (attrs_opt_to_string :
   term Prims.list FStar_Pervasives_Native.option -> Prims.string) =
-  fun uu___8_8821 ->
-    match uu___8_8821 with
+  fun uu___8_8832 ->
+    match uu___8_8832 with
     | FStar_Pervasives_Native.None -> ""
     | FStar_Pervasives_Native.Some attrs ->
-        let uu____8835 =
-          let uu____8837 = FStar_List.map term_to_string attrs in
-          FStar_All.pipe_right uu____8837 (FStar_String.concat "; ") in
-        FStar_Util.format1 "[@ %s]" uu____8835
+        let uu____8846 =
+          let uu____8848 = FStar_List.map term_to_string attrs in
+          FStar_All.pipe_right uu____8848 (FStar_String.concat "; ") in
+        FStar_Util.format1 "[@ %s]" uu____8846
 let rec (head_id_of_pat : pattern -> FStar_Ident.lident Prims.list) =
   fun p ->
     match p.pat with
     | PatName l -> [l]
-    | PatVar (i, uu____8860) ->
-        let uu____8865 = FStar_Ident.lid_of_ids [i] in [uu____8865]
-    | PatApp (p1, uu____8867) -> head_id_of_pat p1
-    | PatAscribed (p1, uu____8873) -> head_id_of_pat p1
-    | uu____8886 -> []
+    | PatVar (i, uu____8871) ->
+        let uu____8876 = FStar_Ident.lid_of_ids [i] in [uu____8876]
+    | PatApp (p1, uu____8878) -> head_id_of_pat p1
+    | PatAscribed (p1, uu____8884) -> head_id_of_pat p1
+    | uu____8897 -> []
 let lids_of_let :
-  'uuuuuu8892 .
-    (pattern * 'uuuuuu8892) Prims.list -> FStar_Ident.lident Prims.list
+  'uuuuuu8903 .
+    (pattern * 'uuuuuu8903) Prims.list -> FStar_Ident.lident Prims.list
   =
   fun defs ->
     FStar_All.pipe_right defs
       (FStar_List.collect
-         (fun uu____8927 ->
-            match uu____8927 with | (p, uu____8935) -> head_id_of_pat p))
+         (fun uu____8938 ->
+            match uu____8938 with | (p, uu____8946) -> head_id_of_pat p))
 let (id_of_tycon : tycon -> Prims.string) =
-  fun uu___9_8942 ->
-    match uu___9_8942 with
-    | TyconAbstract (i, uu____8945, uu____8946) -> FStar_Ident.string_of_id i
-    | TyconAbbrev (i, uu____8956, uu____8957, uu____8958) ->
+  fun uu___9_8953 ->
+    match uu___9_8953 with
+    | TyconAbstract (i, uu____8956, uu____8957) -> FStar_Ident.string_of_id i
+    | TyconAbbrev (i, uu____8967, uu____8968, uu____8969) ->
         FStar_Ident.string_of_id i
-    | TyconRecord (i, uu____8968, uu____8969, uu____8970) ->
+    | TyconRecord (i, uu____8979, uu____8980, uu____8981) ->
         FStar_Ident.string_of_id i
-    | TyconVariant (i, uu____8992, uu____8993, uu____8994) ->
+    | TyconVariant (i, uu____9003, uu____9004, uu____9005) ->
         FStar_Ident.string_of_id i
 let (decl_to_string : decl -> Prims.string) =
   fun d ->
     match d.d with
     | TopLevelModule l ->
-        let uu____9034 = FStar_Ident.string_of_lid l in
-        Prims.op_Hat "module " uu____9034
+        let uu____9045 = FStar_Ident.string_of_lid l in
+        Prims.op_Hat "module " uu____9045
     | Open l ->
-        let uu____9038 = FStar_Ident.string_of_lid l in
-        Prims.op_Hat "open " uu____9038
+        let uu____9049 = FStar_Ident.string_of_lid l in
+        Prims.op_Hat "open " uu____9049
     | Friend l ->
-        let uu____9042 = FStar_Ident.string_of_lid l in
-        Prims.op_Hat "friend " uu____9042
-    | Include l ->
-        let uu____9046 = FStar_Ident.string_of_lid l in
-        Prims.op_Hat "include " uu____9046
-    | ModuleAbbrev (i, l) ->
-        let uu____9051 = FStar_Ident.string_of_id i in
         let uu____9053 = FStar_Ident.string_of_lid l in
-        FStar_Util.format2 "module %s = %s" uu____9051 uu____9053
-    | TopLevelLet (uu____9056, pats) ->
-        let uu____9070 =
-          let uu____9072 =
-            let uu____9076 = lids_of_let pats in
-            FStar_All.pipe_right uu____9076
+        Prims.op_Hat "friend " uu____9053
+    | Include l ->
+        let uu____9057 = FStar_Ident.string_of_lid l in
+        Prims.op_Hat "include " uu____9057
+    | ModuleAbbrev (i, l) ->
+        let uu____9062 = FStar_Ident.string_of_id i in
+        let uu____9064 = FStar_Ident.string_of_lid l in
+        FStar_Util.format2 "module %s = %s" uu____9062 uu____9064
+    | TopLevelLet (uu____9067, pats) ->
+        let uu____9081 =
+          let uu____9083 =
+            let uu____9087 = lids_of_let pats in
+            FStar_All.pipe_right uu____9087
               (FStar_List.map (fun l -> FStar_Ident.string_of_lid l)) in
-          FStar_All.pipe_right uu____9072 (FStar_String.concat ", ") in
-        Prims.op_Hat "let " uu____9070
-    | Assume (i, uu____9094) ->
-        let uu____9095 = FStar_Ident.string_of_id i in
-        Prims.op_Hat "assume " uu____9095
-    | Tycon (uu____9098, uu____9099, tys) ->
-        let uu____9109 =
-          let uu____9111 =
+          FStar_All.pipe_right uu____9083 (FStar_String.concat ", ") in
+        Prims.op_Hat "let " uu____9081
+    | Assume (i, uu____9105) ->
+        let uu____9106 = FStar_Ident.string_of_id i in
+        Prims.op_Hat "assume " uu____9106
+    | Tycon (uu____9109, uu____9110, tys) ->
+        let uu____9120 =
+          let uu____9122 =
             FStar_All.pipe_right tys (FStar_List.map id_of_tycon) in
-          FStar_All.pipe_right uu____9111 (FStar_String.concat ", ") in
-        Prims.op_Hat "type " uu____9109
-    | Val (i, uu____9128) ->
-        let uu____9129 = FStar_Ident.string_of_id i in
-        Prims.op_Hat "val " uu____9129
-    | Exception (i, uu____9133) ->
-        let uu____9138 = FStar_Ident.string_of_id i in
-        Prims.op_Hat "exception " uu____9138
-    | NewEffect (DefineEffect (i, uu____9142, uu____9143, uu____9144)) ->
-        let uu____9153 = FStar_Ident.string_of_id i in
-        Prims.op_Hat "new_effect " uu____9153
-    | NewEffect (RedefineEffect (i, uu____9157, uu____9158)) ->
-        let uu____9163 = FStar_Ident.string_of_id i in
-        Prims.op_Hat "new_effect " uu____9163
-    | LayeredEffect (DefineEffect (i, uu____9167, uu____9168, uu____9169)) ->
-        let uu____9178 = FStar_Ident.string_of_id i in
-        Prims.op_Hat "layered_effect " uu____9178
-    | LayeredEffect (RedefineEffect (i, uu____9182, uu____9183)) ->
-        let uu____9188 = FStar_Ident.string_of_id i in
-        Prims.op_Hat "layered_effect " uu____9188
-    | Polymonadic_bind (l1, l2, l3, uu____9194) ->
-        let uu____9195 = FStar_Ident.string_of_lid l1 in
-        let uu____9197 = FStar_Ident.string_of_lid l2 in
-        let uu____9199 = FStar_Ident.string_of_lid l3 in
-        FStar_Util.format3 "polymonadic_bind (%s, %s) |> %s" uu____9195
-          uu____9197 uu____9199
-    | Polymonadic_subcomp (l1, l2, uu____9204) ->
-        let uu____9205 = FStar_Ident.string_of_lid l1 in
-        let uu____9207 = FStar_Ident.string_of_lid l2 in
-        FStar_Util.format2 "polymonadic_subcomp %s <: %s" uu____9205
-          uu____9207
+          FStar_All.pipe_right uu____9122 (FStar_String.concat ", ") in
+        Prims.op_Hat "type " uu____9120
+    | Val (i, uu____9139) ->
+        let uu____9140 = FStar_Ident.string_of_id i in
+        Prims.op_Hat "val " uu____9140
+    | Exception (i, uu____9144) ->
+        let uu____9149 = FStar_Ident.string_of_id i in
+        Prims.op_Hat "exception " uu____9149
+    | NewEffect (DefineEffect (i, uu____9153, uu____9154, uu____9155)) ->
+        let uu____9164 = FStar_Ident.string_of_id i in
+        Prims.op_Hat "new_effect " uu____9164
+    | NewEffect (RedefineEffect (i, uu____9168, uu____9169)) ->
+        let uu____9174 = FStar_Ident.string_of_id i in
+        Prims.op_Hat "new_effect " uu____9174
+    | LayeredEffect (DefineEffect (i, uu____9178, uu____9179, uu____9180)) ->
+        let uu____9189 = FStar_Ident.string_of_id i in
+        Prims.op_Hat "layered_effect " uu____9189
+    | LayeredEffect (RedefineEffect (i, uu____9193, uu____9194)) ->
+        let uu____9199 = FStar_Ident.string_of_id i in
+        Prims.op_Hat "layered_effect " uu____9199
+    | Polymonadic_bind (l1, l2, l3, uu____9205) ->
+        let uu____9206 = FStar_Ident.string_of_lid l1 in
+        let uu____9208 = FStar_Ident.string_of_lid l2 in
+        let uu____9210 = FStar_Ident.string_of_lid l3 in
+        FStar_Util.format3 "polymonadic_bind (%s, %s) |> %s" uu____9206
+          uu____9208 uu____9210
+    | Polymonadic_subcomp (l1, l2, uu____9215) ->
+        let uu____9216 = FStar_Ident.string_of_lid l1 in
+        let uu____9218 = FStar_Ident.string_of_lid l2 in
+        FStar_Util.format2 "polymonadic_subcomp %s <: %s" uu____9216
+          uu____9218
     | Splice (ids, t) ->
-        let uu____9216 =
-          let uu____9218 =
-            let uu____9220 =
+        let uu____9227 =
+          let uu____9229 =
+            let uu____9231 =
               FStar_List.map (fun i -> FStar_Ident.string_of_id i) ids in
-            FStar_All.pipe_left (FStar_String.concat ";") uu____9220 in
-          let uu____9232 =
-            let uu____9234 =
-              let uu____9236 = term_to_string t in
-              Prims.op_Hat uu____9236 ")" in
-            Prims.op_Hat "] (" uu____9234 in
-          Prims.op_Hat uu____9218 uu____9232 in
-        Prims.op_Hat "splice[" uu____9216
-    | SubEffect uu____9241 -> "sub_effect"
-    | Pragma uu____9243 -> "pragma"
+            FStar_All.pipe_left (FStar_String.concat ";") uu____9231 in
+          let uu____9243 =
+            let uu____9245 =
+              let uu____9247 = term_to_string t in
+              Prims.op_Hat uu____9247 ")" in
+            Prims.op_Hat "] (" uu____9245 in
+          Prims.op_Hat uu____9229 uu____9243 in
+        Prims.op_Hat "splice[" uu____9227
+    | SubEffect uu____9252 -> "sub_effect"
+    | Pragma uu____9254 -> "pragma"
 let (modul_to_string : modul -> Prims.string) =
   fun m ->
     match m with
-    | Module (uu____9253, decls) ->
-        let uu____9259 =
+    | Module (uu____9264, decls) ->
+        let uu____9270 =
           FStar_All.pipe_right decls (FStar_List.map decl_to_string) in
-        FStar_All.pipe_right uu____9259 (FStar_String.concat "\n")
-    | Interface (uu____9274, decls, uu____9276) ->
-        let uu____9283 =
+        FStar_All.pipe_right uu____9270 (FStar_String.concat "\n")
+    | Interface (uu____9285, decls, uu____9287) ->
+        let uu____9294 =
           FStar_All.pipe_right decls (FStar_List.map decl_to_string) in
-        FStar_All.pipe_right uu____9283 (FStar_String.concat "\n")
+        FStar_All.pipe_right uu____9294 (FStar_String.concat "\n")
 let (decl_is_val : FStar_Ident.ident -> decl -> Prims.bool) =
   fun id ->
     fun decl1 ->
       match decl1.d with
-      | Val (id', uu____9312) -> FStar_Ident.ident_equals id id'
-      | uu____9313 -> false
+      | Val (id', uu____9323) -> FStar_Ident.ident_equals id id'
+      | uu____9324 -> false
 let (thunk : term -> term) =
   fun ens ->
     let wildpat = mk_pattern (PatWild FStar_Pervasives_Native.None) ens.range in
@@ -1991,9 +1999,9 @@ let (idents_of_binders :
               match b.b with
               | Variable i -> i
               | TVariable i -> i
-              | Annotated (i, uu____9351) -> i
-              | TAnnotated (i, uu____9353) -> i
-              | NoName uu____9354 ->
+              | Annotated (i, uu____9362) -> i
+              | TAnnotated (i, uu____9364) -> i
+              | NoName uu____9365 ->
                   FStar_Errors.raise_error
                     (FStar_Errors.Fatal_MissingQuantifierBinder,
                       "Wildcard binders in quantifiers are not allowed") r))
