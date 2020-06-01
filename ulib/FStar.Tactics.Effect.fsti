@@ -23,70 +23,110 @@ open FStar.Tactics.Result
  * will break. (`synth_by_tactic` is fine) *)
 
 private
-let __tac (a:Type) = proofstate -> M (__result a)
-
-(* monadic return *)
-private
-let __ret (a:Type) (x:a) : __tac a = fun (s:proofstate) -> Success x s
-
-(* monadic bind *)
-private
-let __bind (a:Type) (b:Type) (r1 r2:range) (t1:__tac a) (t2:a -> __tac b) : __tac b =
-    fun ps ->
-        let ps = set_proofstate_range ps (FStar.Range.prims_to_fstar_range r1) in
-        let ps = incr_depth ps in
-        let r = t1 ps in
-        match r with
-        | Success a ps' ->
-            let ps' = set_proofstate_range ps' (FStar.Range.prims_to_fstar_range r2) in
-            // Force evaluation of __tracepoint q even on the interpreter
-            begin match tracepoint ps' with
-            | () -> t2 a (decr_depth ps')
-            end
-        | Failed e ps' -> Failed e ps'
-
-(* Actions *)
-private
-let __get () : __tac proofstate = fun s0 -> Success s0 s0
-
-private
-let __raise (a:Type0) (e:exn) : __tac a = fun (ps:proofstate) -> Failed #a e ps
-
-private
 let __tac_wp a = proofstate -> (__result a -> Tot Type0) -> Tot Type0
 
-(*
- * The DMFF-generated `bind_wp` doesn't the contain the "don't duplicate the post-condition"
- * optimization, which causes VCs (for well-formedness of tactics) to blow up.
- *
- * Plus, we don't need to model the ranges and depths: they make no difference since the
- * proofstate type is abstract and the SMT never sees a concrete one.
- *
- * So, override `bind_wp` for the effect with an efficient one.
- *)
 private
-unfold let g_bind (a:Type) (b:Type) (wp:__tac_wp a) (f:a -> __tac_wp b) = fun ps post ->
+let __tac (a:Type) (wp:__tac_wp a) = ps0:proofstate -> DIV (__result a) (wp ps0)
+
+private
+let __ret (a:Type) (x:a)
+  : __tac a (fun ps0 p -> p (Success x ps0))
+  = fun ps0 -> Success x ps0
+
+private
+unfold let __g_bind (a:Type) (b:Type) (wp:__tac_wp a) (f:a -> __tac_wp b) = fun ps post ->
     wp ps (fun m' -> match m' with
                      | Success a q -> f a q post
                      | Failed e q -> post (Failed e q))
 
 private
-unfold let g_compact (a:Type) (wp:__tac_wp a) : __tac_wp a =
+unfold let __g_compact (a:Type) (wp:__tac_wp a) : __tac_wp a =
     fun ps post -> forall k. (forall (r:__result a).{:pattern (guard_free (k r))} post r ==> k r) ==> wp ps k
 
 private
-unfold let __TAC_eff_override_bind_wp (r:range) (a:Type) (b:Type) (wp:__tac_wp a) (f:a -> __tac_wp b) =
-    g_compact b (g_bind a b wp f)
+unfold let __bind_wp (r:range) (a:Type) (b:Type) (wp:__tac_wp a) (f:a -> __tac_wp b) =
+    __g_compact b (__g_bind a b wp f)
 
-[@@ dm4f_bind_range ]
-new_effect {
-  TAC : a:Type -> Effect
-  with repr     = __tac
-     ; bind     = __bind
-     ; return   = __ret
-     ; __raise  = __raise
-     ; __get    = __get
+
+#push-options "--admit_smt_queries true"
+(* monadic bind *)
+private
+let __bind (a:Type) (b:Type)
+           (wp1:__tac_wp a) (wp2 : a -> __tac_wp b)
+           (t1:__tac a wp1) (t2: (x:a -> __tac b (wp2 x)))
+  : __tac b (__bind_wp range_0 _ _ wp1 wp2)
+  = fun ps ->
+        //let ps = set_proofstate_range ps (FStar.Range.prims_to_fstar_range r1) in
+        let ps = incr_depth ps in
+        let r = t1 ps in
+        match r with
+        | Success a ps' ->
+            //let ps' = set_proofstate_range ps' (FStar.Range.prims_to_fstar_range r2) in
+            // Force evaluation of __tracepoint q even on the interpreter
+            begin match tracepoint ps' with
+            | () -> t2 a (decr_depth ps')
+            end
+        | Failed e ps' -> Failed e ps'
+#pop-options
+
+private
+let __subcomp (a:Type) (wp1 wp2 : __tac_wp a) (tau : __tac a wp1)
+  : Pure (__tac a wp2)
+         (requires (forall ps0 p. wp2 ps0 p ==> wp1 ps0 p))
+         (ensures (fun _ -> True))
+  = tau
+
+private
+let __if_then_else (a:Type) (wp1 wp2 : __tac_wp a)
+                   (f : __tac a wp1) (g : __tac a wp2)
+                   (q:Type0)
+  : Type
+  = __tac a ((* __g_compact a  *)(fun ps0 p -> (q ==> wp1 ps0 p) /\ ((~q) ==> wp2 ps0 p)))
+
+(* Actions *)
+private
+let __get ()
+  : __tac proofstate (fun ps0 p -> p (Success ps0 ps0))
+  = fun s0 -> Success s0 s0
+
+private
+let __raise (a:Type0) (e:exn) // GM: FIXME: needed to force type0
+  : __tac a (fun ps0 p -> p (Failed e ps0))
+  = fun (ps:proofstate) -> Failed #a e ps
+
+layered_effect {
+  TAC : (a:Type) -> (wp:__tac_wp a) -> Effect
+  with repr         = __tac
+     ; bind         = __bind
+     ; return       = __ret
+     ; subcomp      = __subcomp
+     ; if_then_else = __if_then_else
+     ; __get        = __get
+     ; __raise      = __raise
 }
+
+private
+let monotonic #a (wp : pure_wp a) =
+  forall p1 p2. (forall x. p1 x ==> p2 x) ==> wp p1 ==> wp p2
+
+private
+unfold
+let __lift_pure_wp #a (wp : pure_wp a) : __tac_wp a =
+  fun ps0 p -> wp (fun x -> p (Success x ps0))
+
+let lift_pure_tac (a:Type) (wp:pure_wp a{monotonic wp}) (f : unit -> PURE a wp)
+  : Tot (__tac a (__lift_pure_wp wp))
+  = fun ps -> Success (f ()) ps
+
+sub_effect PURE ~> TAC = lift_pure_tac
+
+private
+unfold
+let lift_div_tac (a:Type) (wp:pure_wp a{monotonic wp}) (f : unit -> DIV a wp)
+  : Tot (__tac a (__lift_pure_wp wp))
+  = fun ps -> Success (f ()) ps
+
+sub_effect DIV ~> TAC = lift_div_tac
 
 (* Hoare variant *)
 effect TacH (a:Type) (pre : proofstate -> Tot Type0) (post : proofstate -> __result a -> Tot Type0) =
@@ -101,14 +141,14 @@ effect TacS (a:Type) = TacH a (requires (fun _ -> True)) (ensures (fun _ps r -> 
 (* A variant that doesn't prove totality (nor type safety!) *)
 effect TacF (a:Type) = TacH a (requires (fun _ -> False)) (ensures (fun _ _ -> True))
 
-unfold
-let lift_div_tac (a:Type) (wp:pure_wp a) : __tac_wp a =
-    fun ps p -> wp (fun x -> p (Success x ps))
 
-sub_effect DIV ~> TAC = lift_div_tac
-
-let get = TAC?.__get
-let raise (#a:Type) (e:exn) = TAC?.__raise a e
+let get ()
+  : TAC proofstate (fun ps0 p -> p (Success ps0 ps0))
+  = TAC?.__get ()
+  
+let raise (#a:Type) (e:exn) 
+  : TAC a (fun ps0 p -> p (Failed e ps0))
+  = TAC?.__raise a e
 
 val with_tactic (t : unit -> Tac unit) (p:Type u#a) : Type u#a
 
