@@ -72,7 +72,7 @@ val join_associative (m0 m1 m2:mem)
     (ensures
       (disjoint_join m0 m1 m2;
        join m0 (join m1 m2) == join (join m0 m1) m2))
-
+       
 (**** Separation logic *)
 
 (** The type of separation logic propositions. Based on Steel.Heap.slprop *)
@@ -165,6 +165,14 @@ val intro_star (p q:slprop) (mp:hmem p) (mq:hmem q)
       disjoint mp mq)
     (ensures
       interp (p `star` q) (join mp mq))
+      
+val elim_star (p q:slprop) (m:hmem (p `star` q))
+  : Lemma
+    (requires
+      interp (p `star` q) m)
+    (ensures exists ml mr.
+      disjoint ml mr /\ m == join ml mr /\ interp p ml /\ interp q mr)
+
 
 val star_commutative (p1 p2:slprop)
   : Lemma ((p1 `star` p2) `equiv` (p2 `star` p1))
@@ -243,6 +251,8 @@ val h_exists_cong (#a:Type) (p q : a -> slprop)
 val intro_h_exists (#a:_) (x:a) (p:a -> slprop) (m:mem)
   : Lemma (interp (p x) m ==> interp (h_exists p) m)
 
+val elim_h_exists (#a:_) (p:a -> slprop) (m:mem)
+  : Lemma (interp (h_exists p) m ==> (exists x. interp (p x) m))
 
 (**** Actions *)
 

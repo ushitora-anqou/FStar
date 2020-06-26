@@ -81,6 +81,18 @@ val join_associative (h0 h1 h2:heap)
       (disjoint_join h0 h1 h2;
        join h0 (join h1 h2) == join (join h0 h1) h2))
 
+// will never work with a PCM model, maybe it was a PC group
+
+//val join_invariance_l (m:heap) (m1 : heap{disjoint m m1})
+//                               (m2 : heap{disjoint m m2})
+//  : Lemma (requires (join m m1 == join m m2))
+//          (ensures (m1 == m2))
+//  
+//val join_invariance_r (m:heap) (m1 : heap{disjoint m m1})
+//                               (m2 : heap{disjoint m m2})
+//  : Lemma (requires (join m1 m == join m2 m))
+//          (ensures (m1 == m2))
+
 (**** Separation logic over heaps *)
 
 (**
@@ -188,6 +200,9 @@ val h_exists_cong (#a:Type) (p q : a -> slprop)
 val intro_h_exists (#a:_) (x:a) (p:a -> slprop) (h:heap)
   : Lemma (interp (p x) h ==> interp (h_exists p) h)
 
+val elim_h_exists (#a:_) (p:a -> slprop) (h:heap)
+  : Lemma (interp (h_exists p) h ==> (exists x. interp (p x) h))
+
 (**
   The interpretation of a separation logic proposition [hp] is itself an [hprop] of footprint
   [hp]
@@ -243,6 +258,15 @@ val intro_star (p q:slprop) (hp:hheap p) (hq:hheap q)
     : Lemma
       (requires disjoint hp hq)
       (ensures interp (p `star` q) (join hp hq))
+      
+val elim_star (p q:slprop) (h:hheap (p `star` q))
+    : Lemma
+      (requires interp (p `star` q) h)
+    (ensures exists hl hr.
+      disjoint hl hr /\
+      h == join hl hr /\
+      interp p hl /\
+      interp q hr)
 
 (** [star] is commutative *)
 val star_commutative (p1 p2:slprop)

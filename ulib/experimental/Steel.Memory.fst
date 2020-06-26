@@ -41,6 +41,12 @@ let mem_of_heap (h:H.heap) : mem = {
   locks = []
 }
 
+let mem_set_heap (m:mem) (h:H.heap) : mem = {
+  ctr = m.ctr;
+  heap = h;
+  locks = m.locks;
+}
+
 let core_mem (m:mem) : mem = mem_of_heap (heap_of_mem m)
 
 let disjoint (m0 m1:mem u#h)
@@ -156,6 +162,22 @@ let pts_to_compatible_equiv #a #pcm v0 v1 = H.pts_to_compatible_equiv v0 v1
 
 let intro_star p q mp mq =
   H.intro_star p q (heap_of_mem mp) (heap_of_mem mq)
+  
+let elim_star p q m =
+  let h = heap_of_mem m in
+  H.elim_star p q h;
+  assert (exists hl hr. H.disjoint hl hr /\ H.join hl hr == h /\ H.interp p hl /\ H.interp q hr);
+  let hl = FStar.IndefiniteDescription.indefinite_description_tot H.heap (fun hl ->
+     exists hr. H.disjoint hl hr /\ H.join hl hr == h /\ H.interp p hl /\ H.interp q hr) in
+  let hr = FStar.IndefiniteDescription.indefinite_description_tot H.heap (fun hr ->
+     H.disjoint hl hr /\ H.join hl hr == h /\ H.interp p hl /\ H.interp q hr) in
+  let ml = mem_set_heap m hl in
+  let mr = mem_set_heap m hr in
+  assert (disjoint ml mr);
+  assert (m == join ml mr);
+  assert (interp p ml);
+  assert (interp q mr);
+  ()
 
 let star_commutative (p1 p2:slprop) =
   H.star_commutative p1 p2
@@ -285,6 +307,8 @@ let h_exists_cong (#a:Type) (p q : a -> slprop)
       H.h_exists_cong p q
 
 let intro_h_exists #a x p m = H.intro_h_exists x p (heap_of_mem m)
+
+let elim_h_exists (#a:_) (p:a -> slprop) (m:mem) = H.elim_h_exists p (heap_of_mem m)
 
 ////////////////////////////////////////////////////////////////////////////////
 // Preorders and effects

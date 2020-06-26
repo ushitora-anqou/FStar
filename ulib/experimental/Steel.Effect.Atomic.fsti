@@ -204,7 +204,7 @@ let h_affine (#opened_invariants:_) (p q:slprop)
 
 (** We assume this action for now. See the discussion in Steel.Heap.fst for
     how we plan to derive this action with an enhancement to the semantics *)
-val witness_h_exists (#opened_invariants:_) (#a:Type) (#p:a -> slprop) (_:unit)
+val witness_h_exists (#a:Type) (#opened_invariants:_) (#p:a -> slprop) (_:unit)
   : SteelAtomic (Ghost.erased a) opened_invariants unobservable
                 (h_exists p) (fun x -> p x)
 

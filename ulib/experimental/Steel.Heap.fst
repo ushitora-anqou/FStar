@@ -364,6 +364,8 @@ let h_exists_cong (#a:Type) (p q : a -> slprop) = ()
 
 let intro_h_exists #a x p h = ()
 
+let elim_h_exists #a p h = ()
+
 let interp_depends_only_on (hp:slprop u#a) = emp_unit hp
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -525,6 +527,17 @@ let intro_star (p q:slprop) (mp:hheap p) (mq:hheap q)
       interp (p `star` q) (join mp mq))
   = ()
 
+let elim_star (p q:slprop) (h:hheap (p `star` q))
+  : Lemma
+    (requires
+      interp (p `star` q) h)
+    (ensures exists hl hr.
+      disjoint hl hr /\
+      h == join hl hr /\
+      interp p hl /\
+      interp q hr)
+  =
+  ()
 
 (* Properties of star *)
 
@@ -1049,7 +1062,8 @@ let _witness_h_exists (a:Type) (p: a -> slprop) (frame:slprop)
         (forall (hp:hprop frame). hp h0 == hp h1) /\
         (forall ctr. h0 `free_above_addr` ctr ==> h1 `free_above_addr` ctr)
       })
-    = assert (equiv (h_exists p `star` frame) (h_exists (fun x -> p x `star` frame)));
+    = assert (equiv (h_exists p `star` frame)
+                    (h_exists (fun x -> p x `star` frame)));
       let w = FStar.IndefiniteDescription.indefinite_description_tot a (fun x -> interp (p x `star` frame) h0) in
       assert (interp (p w `star` frame) h0);
       (| w, h0 |)
