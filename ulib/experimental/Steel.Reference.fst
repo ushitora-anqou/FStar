@@ -118,8 +118,19 @@ let raise_ref r p v = Basics.return r
 
 let lower_ref r p v = Basics.return r
 
-let pts_to_framon r p =
-  H.pts_to_framon r p
-
-let pts_to_witinv r p =
-  H.pts_to_witinv r p
+let pts_to_witinv (#a:Type u#0) (r:ref a) (p:perm)
+  : Lemma (witness_invariant  (pts_to r p))
+  = let aux (x y : erased a) (m : mem)
+      : Lemma (requires (interp (pts_to r p x) m
+                       /\ interp (pts_to r p y) m))
+              (ensures x == y)
+      = H.pts_to_witinv' r p
+    in
+    Classical.forall_intro (fun x ->
+    Classical.forall_intro (fun y ->
+    Classical.forall_intro (fun m ->
+    Classical.move_requires (aux x y) m)))
+  
+let pts_to_framon (#a:Type u#0) (r:ref a) (p:perm)
+  : Lemma (is_frame_monotonic (pts_to r p))
+  = pts_to_witinv r p

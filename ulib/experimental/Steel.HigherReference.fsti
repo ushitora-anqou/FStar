@@ -41,6 +41,10 @@ val pts_to_ref_injective
 val pts_to_framon (#a:Type) (r:ref a) (p:perm) : Lemma (is_frame_monotonic #a (fun v -> pts_to r p v))
 val pts_to_witinv (#a:Type) (r:ref a) (p:perm) : Lemma (witness_invariant #a (fun v -> pts_to r p v))
 
+// or is it...??
+val pts_to_framon' (#a:Type) (r:ref a) (p:perm) : Lemma (is_frame_monotonic (pts_to r p))
+val pts_to_witinv' (#a:Type) (r:ref a) (p:perm) : Lemma (witness_invariant  (pts_to r p))
+
 val alloc (#a:Type) (x:a)
   : SteelT (ref a) emp (fun r -> pts_to r full_perm x)
 

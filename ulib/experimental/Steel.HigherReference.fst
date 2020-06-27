@@ -102,7 +102,7 @@ let pts_to_ref_injective
       Mem.pts_to_compatible r (Some (Ghost.reveal v0, p0))
                               (Some (Ghost.reveal v1, p1))
                               m
-                              
+
 let pts_to_framon (#a:Type) (r:ref a) (p:perm) : Lemma (is_frame_monotonic #a (fun v -> pts_to r p v)) =
   let aux (x y : a) (m:mem) (f:slprop)
     : Lemma (requires (interp (pts_to r p x `star` f) m /\ interp (pts_to r p y) m))
@@ -128,6 +128,34 @@ let pts_to_witinv (#a:Type) (r:ref a) (p:perm) : Lemma (witness_invariant #a (fu
   in
   Classical.forall_intro_3 (fun x y -> Classical.move_requires (aux x y))
   
+let pts_to_framon' (#a:Type) (r:ref a) (p:perm) : Lemma (is_frame_monotonic (pts_to r p)) =
+ (* copied from above + erased, sorry *)
+  let aux (x y : erased a) (m:mem) (f:slprop)
+    : Lemma (requires (interp (pts_to r p x `star` f) m /\ interp (pts_to r p y) m))
+            (ensures  (slimp (pts_to r p x) (pts_to r p y)))
+    =
+    let (ml, mr) = id_elim_star (pts_to r p x) f m in
+    assert (interp (pts_to r p x) ml);
+    assert (interp (pts_to r p x) m);
+    assert (interp (pts_to_raw r p y) m);
+    assert (interp (Mem.pts_to r (Some (Ghost.reveal x, p))) m);
+    assert (interp (Mem.pts_to r (Some (Ghost.reveal y, p))) m);
+    Mem.pts_to_join r (Some (Ghost.reveal x, p)) (Some (Ghost.reveal y, p)) m;
+    ()
+  in
+  Classical.forall_intro_4 (fun x y m -> Classical.move_requires (aux x y m))
+ 
+let pts_to_witinv' (#a:Type) (r:ref a) (p:perm) : Lemma (witness_invariant  (pts_to r p)) =
+ (* copied from above + erased, sorry *)
+  let aux (x y : erased a) (m:mem)
+    : Lemma (requires (interp (pts_to r p x) m /\ interp (pts_to r p y) m))
+            (ensures  (x == y))
+    =
+    Mem.pts_to_join r (Some (Ghost.reveal x, p)) (Some (Ghost.reveal y, p)) m
+  in
+  Classical.forall_intro_3 (fun x y -> Classical.move_requires (aux x y))
+
+
 let drop (p:slprop)
   : SteelT unit p (fun _ -> emp)
   = lift_atomic_to_steelT (fun _ ->
