@@ -81,18 +81,6 @@ val join_associative (h0 h1 h2:heap)
       (disjoint_join h0 h1 h2;
        join h0 (join h1 h2) == join (join h0 h1) h2))
 
-// will never work with a PCM model, maybe it was a PC group
-
-//val join_invariance_l (m:heap) (m1 : heap{disjoint m m1})
-//                               (m2 : heap{disjoint m m2})
-//  : Lemma (requires (join m m1 == join m m2))
-//          (ensures (m1 == m2))
-//  
-//val join_invariance_r (m:heap) (m1 : heap{disjoint m m1})
-//                               (m2 : heap{disjoint m m2})
-//  : Lemma (requires (join m1 m == join m2 m))
-//          (ensures (m1 == m2))
-
 (**** Separation logic over heaps *)
 
 (**
@@ -200,6 +188,7 @@ val h_exists_cong (#a:Type) (p q : a -> slprop)
 val intro_h_exists (#a:_) (x:a) (p:a -> slprop) (h:heap)
   : Lemma (interp (p x) h ==> interp (h_exists p) h)
 
+(** Eliminate an existential by simply getting a proposition. *)
 val elim_h_exists (#a:_) (p:a -> slprop) (h:heap)
   : Lemma (interp (h_exists p) h ==> (exists x. interp (p x) h))
 
@@ -243,13 +232,13 @@ val pts_to_compatible
        (composable pcm v0 v1 /\
         interp (pts_to x (op pcm v0 v1)) h))
 
-(** If a reference points to two different values, they must be joinable in the PCM,
-even when the pointing does not happen separately. *)
+(** If a reference points to two different values, they must be joinable
+in the PCM, even when the pointing does not happen separately. *)
 val pts_to_join (#a:Type u#a) (#pcm:_) (r:ref a pcm) (v1 v2:a) (m:heap)
   : Lemma (requires (interp (pts_to r v1) m /\ interp (pts_to r v2) m))
           (ensures joinable pcm v1 v2)
-          
-(** Further the value in the heap is above both *)
+
+(** Further, the value in the heap is a witness for that property *)
 val pts_to_join' (#a:Type u#a) (#pcm:_) (r:ref a pcm) (v1 v2:a) (m:heap)
   : Lemma (requires (interp (pts_to r v1) m /\ interp (pts_to r v2) m))
           (ensures (exists z. compatible pcm v1 z /\ compatible pcm v2 z /\
@@ -270,7 +259,7 @@ val intro_star (p q:slprop) (hp:hheap p) (hq:hheap q)
     : Lemma
       (requires disjoint hp hq)
       (ensures interp (p `star` q) (join hp hq))
-      
+
 val elim_star (p q:slprop) (h:hheap (p `star` q))
     : Lemma
       (requires interp (p `star` q) h)

@@ -63,7 +63,7 @@ let hide_raise_reveal (#a:Type) (v0:erased a) (v1:erased a)
     assert (U.downgrade_val (U.raise_val (reveal v0)) == U.downgrade_val (U.raise_val (reveal v1)) <==>
             v0 == v1)
 
-let gather_atomic #a #uses #p0 #p1 #v0 #v1 r = 
+let gather_atomic #a #uses #p0 #p1 #v0 #v1 r =
   let x = H.gather_atomic r in
   A.return_atomic x
 
@@ -80,7 +80,7 @@ let downgrade_equiv (#t:Type) (x y:U.raise_t t)
   = assert (U.raise_val (U.downgrade_val x) == x);
     assert (U.raise_val (U.downgrade_val y) == y)
 
-let lift_eq (#t:eqtype) (x y:U.raise_t t) 
+let lift_eq (#t:eqtype) (x y:U.raise_t t)
   : b:bool{b <==> x==y}
   = downgrade_equiv x y; U.downgrade_val x = U.downgrade_val y
 
@@ -97,7 +97,7 @@ let cas_action (#t:eqtype)
             (pts_to r full_perm v)
             (fun b -> if b then pts_to r full_perm v_new else pts_to r full_perm v)
    = let hv =     (Ghost.hide (U.raise_val (Ghost.reveal v))) in
-     let b = H.cas_action #(U.raise_t t) 
+     let b = H.cas_action #(U.raise_t t)
                   (lift_eq #t)
                   #uses
                   r
@@ -130,7 +130,7 @@ let pts_to_witinv (#a:Type u#0) (r:ref a) (p:perm)
     Classical.forall_intro (fun y ->
     Classical.forall_intro (fun m ->
     Classical.move_requires (aux x y) m)))
-  
+
 let pts_to_framon (#a:Type u#0) (r:ref a) (p:perm)
   : Lemma (is_frame_monotonic (pts_to r p))
   = pts_to_witinv r p

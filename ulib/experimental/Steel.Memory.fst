@@ -162,7 +162,7 @@ let pts_to_compatible_equiv #a #pcm v0 v1 = H.pts_to_compatible_equiv v0 v1
 
 let intro_star p q mp mq =
   H.intro_star p q (heap_of_mem mp) (heap_of_mem mq)
-  
+
 let elim_star p q m =
   let h = heap_of_mem m in
   H.elim_star p q h;
@@ -1082,9 +1082,9 @@ let elim_pure #opened_invariants p = lift_tot_action (lift_heap_action opened_in
 
 let pts_to_join (#a:Type) (#pcm:pcm a) (r:ref a pcm) (x y : a) (m:mem) :
   Lemma (requires (interp (pts_to r x) m /\ interp (pts_to r y) m))
-        (ensures (joinable pcm x y)) = 
+        (ensures (joinable pcm x y)) =
   H.pts_to_join r x y (heap_of_mem m)
-  
+
 let pts_to_evolve (#a:Type u#a) (#pcm:_) (r:ref a pcm) (x y : a) (m:mem)
   : Lemma (requires (interp (pts_to r x) m /\ compatible pcm y x))
           (ensures  (interp (pts_to r y) m))
@@ -1128,12 +1128,12 @@ let elim_wi #a (p : a -> slprop{witness_invariant p}) (x y : a) (m : mem)
   : Lemma (requires (interp (p x) m /\ interp (p y) m))
           (ensures (x == y))
   = ()
-  
+
 let witinv_framon (#a:Type) (p : a -> slprop)
   : Lemma (witness_invariant p ==> is_frame_monotonic p)
           [SMTPatOr [[SMTPat (witness_invariant p)]; [SMTPat (is_frame_monotonic p)]]]
   = ()
-          
+
 let star_is_frame_monotonic (#a:Type)
     (f g : a -> slprop)
   : Lemma (requires (is_frame_monotonic f /\ is_frame_monotonic g))
@@ -1158,7 +1158,7 @@ let star_is_witinv_left (#a:Type)
   : Lemma (requires (witness_invariant f))
           (ensures  (witness_invariant (fun x -> f x `star` g x)))
   = ()
-          
+
 let star_is_witinv_right (#a:Type)
     (f g : a -> slprop)
   : Lemma (requires (witness_invariant g))

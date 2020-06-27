@@ -44,7 +44,7 @@ let lockprop_framon (p:slprop) (r:ref bool)
       assert (interp (p y) m);
       pts_to_witinv #bool r full_perm;
       elim_wi p x y m // ugh... why do I need to call this!?
-  in 
+  in
   Classical.forall_intro_4 (fun x y m -> Classical.move_requires (aux x y m));
   ()
 

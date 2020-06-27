@@ -71,6 +71,7 @@ val elim_star_pat (p q:slprop) (m:hmem (p `star` q))
     [SMTPat (interp (p `star` q) m)]
 let elim_star_pat = elim_star
 
+(* TODO: I am awful, please split me up *)
 let witness_h_exists (#a:Type) (#opened:_) (#p:(a -> slprop){is_frame_monotonic p}) ()
   : SteelAtomic (Ghost.erased a) opened unobservable
                 (h_exists p) (fun x -> p x)

@@ -319,7 +319,7 @@ let rewrite_reveal_hide #a (x:a) (p:a -> slprop) ()
   = SB.return ()
 
 let pts_to_is_witness_invariant (#a:Type) (#p:Preorder.preorder a)
-    (r:ref a p) (q:perm) 
+    (r:ref a p) (q:perm)
   : Lemma (witness_invariant (pts_to r q))
           [SMTPat (witness_invariant (pts_to r q))]
   = let aux (x y : erased a) (m:mem)
@@ -352,7 +352,7 @@ let pts_to_is_witness_invariant (#a:Type) (#p:Preorder.preorder a)
 
 // plus coercion
 let pts_to_is_witness_invariant' (#a:Type) (#p:Preorder.preorder a)
-    (r:ref a p) (q:perm) 
+    (r:ref a p) (q:perm)
   : Lemma (witness_invariant (fun (v:a) -> pts_to r q v))
           [SMTPat (witness_invariant (fun (v:a) -> pts_to r q v))]
   = pts_to_is_witness_invariant r q

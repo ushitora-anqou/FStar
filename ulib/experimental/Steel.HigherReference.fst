@@ -127,7 +127,7 @@ let pts_to_witinv (#a:Type) (r:ref a) (p:perm) : Lemma (witness_invariant #a (fu
     Mem.pts_to_join r (Some (Ghost.reveal x, p)) (Some (Ghost.reveal y, p)) m
   in
   Classical.forall_intro_3 (fun x y -> Classical.move_requires (aux x y))
-  
+
 let pts_to_framon' (#a:Type) (r:ref a) (p:perm) : Lemma (is_frame_monotonic (pts_to r p)) =
  (* copied from above + erased, sorry *)
   let aux (x y : erased a) (m:mem) (f:slprop)
@@ -144,7 +144,7 @@ let pts_to_framon' (#a:Type) (r:ref a) (p:perm) : Lemma (is_frame_monotonic (pts
     ()
   in
   Classical.forall_intro_4 (fun x y m -> Classical.move_requires (aux x y m))
- 
+
 let pts_to_witinv' (#a:Type) (r:ref a) (p:perm) : Lemma (witness_invariant  (pts_to r p)) =
  (* copied from above + erased, sorry *)
   let aux (x y : erased a) (m:mem)

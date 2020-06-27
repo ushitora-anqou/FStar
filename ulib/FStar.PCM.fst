@@ -100,7 +100,7 @@ let compatible_refl
   pcm.is_unit x;
   pcm.comm x pcm.p.one;
   assert (op pcm pcm.p.one x == x)
-  
+
 (** Compatibility is transitive *)
 let compatible_trans
   (#a: Type u#a) (pcm:pcm a) (x y z:a)

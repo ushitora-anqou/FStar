@@ -72,7 +72,7 @@ val join_associative (m0 m1 m2:mem)
     (ensures
       (disjoint_join m0 m1 m2;
        join m0 (join m1 m2) == join (join m0 m1) m2))
-       
+
 (**** Separation logic *)
 
 (** The type of separation logic propositions. Based on Steel.Heap.slprop *)
@@ -88,7 +88,7 @@ let hmem (p:slprop u#a) = m:mem u#a {interp p m}
 (** Equivalence relation on slprops is just equivalence of their interpretations *)
 let equiv (p1 p2:slprop) : prop =
   forall m. interp p1 m <==> interp p2 m
-  
+
 let slimp (p1 p2:slprop) : prop =
   forall m. interp p1 m ==> interp p2 m
 
@@ -168,7 +168,7 @@ val intro_star (p q:slprop) (mp:hmem p) (mq:hmem q)
       disjoint mp mq)
     (ensures
       interp (p `star` q) (join mp mq))
-      
+
 val elim_star (p q:slprop) (m:hmem (p `star` q))
   : Lemma
     (requires
@@ -453,7 +453,7 @@ val elim_wi (#a:Type) (p : a -> slprop{witness_invariant p}) (x y : a) (m : mem)
 val witinv_framon (#a:Type) (p : a -> slprop)
   : Lemma (witness_invariant p ==> is_frame_monotonic p)
           [SMTPatOr [[SMTPat (witness_invariant p)]; [SMTPat (is_frame_monotonic p)]]]
-  
+
 val star_is_frame_monotonic (#a:Type)
     (f g : a -> slprop)
   : Lemma (requires (is_frame_monotonic f /\ is_frame_monotonic g))
@@ -465,7 +465,7 @@ val star_is_witinv_left (#a:Type)
   : Lemma (requires (witness_invariant f))
           (ensures  (witness_invariant (fun x -> f x `star` g x)))
           //[SMTPat   (witness_invariant (fun x -> f x `star` g x))]
-          
+
 val star_is_witinv_right (#a:Type)
     (f g : a -> slprop)
   : Lemma (requires (witness_invariant g))

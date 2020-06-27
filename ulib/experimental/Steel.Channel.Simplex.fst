@@ -70,6 +70,8 @@ let pts_to_injective #a #p #q (r:ref a) (v0 v1:Ghost.erased a) (rest:Ghost.erase
                 (fun m -> pts_to_ref_injective r p q v0 v1 m;
                        assert (v0 == v1)))
 open Steel.FractionalPermission
+
+(* Since pts_to is witness-invariant, we can witness any `q` here. *)
 let ghost_read_refine (#a:Type) (#p:perm) (q:a -> slprop) (r:ref a)
   : SteelT (Ghost.erased a) (h_exists (fun (v:a) -> pts_to r p v `star` q v))
              (fun v -> pts_to r p v `star` q v)
@@ -180,7 +182,7 @@ let trace_until_prop #p (r:trace_ref p) (vr:chan_val) (tr: partial_trace_of p) :
 
 let trace_until #p (r:trace_ref p) (vr:chan_val) =
   h_exists (trace_until_prop r vr)
-  
+
 let chan_inv_recv #p (c:chan_t p) (vsend:chan_val) =
   h_exists (fun (vrecv:chan_val) ->
       pts_to c.recv half vrecv `star`
@@ -190,7 +192,7 @@ let chan_inv_recv #p (c:chan_t p) (vsend:chan_val) =
 let chan_inv #p (c:chan_t p) : slprop =
   h_exists (fun (vsend:chan_val) ->
     pts_to c.send half vsend `star` chan_inv_recv c vsend)
-    
+
 let rewrite_eq_squash #a (x:a) (y:a{x==y}) (p:a -> slprop)
   : SteelT unit (p x) (fun _ -> p y)
   = h_assert (p y)
@@ -487,8 +489,7 @@ let gather_r (#p:sprot) (r:ref chan_val) (v:chan_val)
     (fun _ -> pts_to r full_perm v `star` in_state_slprop p v)
   = h_commute _ _;
     h_assert (in_state r p `star` pts_to r half v);
-    let sub () : SteelT _ _ _ = ghost_read_refine (in_state_slprop p) r
-    in
+    let sub () : SteelT _ _ _ = ghost_read_refine (in_state_slprop p) r in
     let v' = frame sub _ in
     h_assert ((pts_to r half v' `star` in_state_slprop p v') `star` pts_to r half v);
     reshuffle #_ #(((pts_to r half v `star` pts_to r half v') `star` in_state_slprop p v')) ();
@@ -899,7 +900,6 @@ let rewrite_eq_squash_tok #a (x:a) (y:a) ($tok:squash (x==y)) (p:a -> slprop)
   : SteelT unit (p x) (fun _ -> p y)
   = h_assert (p y)
 
-#push-options "--z3rlimit_factor 4"
 let witness_trace_until #q (r:trace_ref q) (vr:chan_val)
   : SteelT (partial_trace_of q)
            (trace_until r vr)
@@ -914,7 +914,6 @@ let witness_trace_until #q (r:trace_ref q) (vr:chan_val)
     h_commute _ _;
     h_assert (trace_until r vr `star` pure (MRef.witnessed r (history_p tr)));
     return #(partial_trace_of q) tr
-#pop-options
 
 let trace #q (cc:chan q)
   : SteelT (partial_trace_of q) emp (fun tr -> history cc tr)

@@ -515,12 +515,12 @@ let pts_to_compatible (#a:Type u#a)
                       (m:heap u#a) =
     FStar.Classical.forall_intro (FStar.Classical.move_requires (pts_to_compatible_fwd x v0 v1));
     FStar.Classical.forall_intro (FStar.Classical.move_requires (pts_to_compatible_bk x v0 v1))
-    
+
 let pts_to_join (#a:Type u#a) (#pcm:_) (r:ref a pcm) (v1 v2:a) (m:heap)
   : Lemma (requires (interp (pts_to r v1) m /\ interp (pts_to r v2) m))
           (ensures joinable pcm v1 v2)
   = ()
-          
+
 let pts_to_join' (#a:Type u#a) (#pcm:_) (r:ref a pcm) (v1 v2:a) (m:heap)
   : Lemma (requires (interp (pts_to r v1) m /\ interp (pts_to r v2) m))
           (ensures (exists z. compatible pcm v1 z /\ compatible pcm v2 z /\
@@ -1109,7 +1109,7 @@ let elim_pure (p:prop)
       = fun h -> (| (), h |)
     in
     refined_pre_action_as_action f
-    
+
 let id_elim_star p q m =
   let starprop (ml:heap) (mr:heap) =
       disjoint ml mr
@@ -1141,30 +1141,3 @@ let pts_to_evolve (#a:Type u#a) (#pcm:_) (r:ref a pcm) (x y : a) (h:heap)
           (ensures  (interp (pts_to r y) h))
   = let Ref a' pcm' v' = (select_addr h r) in
     compatible_trans pcm y x v'
-
-
-// don't think this is true
-//let pts_to_framon (#a:Type u#a) (#pcm:_) (r:ref a pcm)
-//  : Lemma (is_frame_monotonic (pts_to r))
-//          [SMTPat (is_frame_monotonic (pts_to r))]
-//  = let aux (x y : a) (h : heap) (f : slprop) (h' : heap)
-//      : Lemma (requires (interp (pts_to r x `star` f) h
-//                       /\ interp (pts_to r y) h
-//                       /\ interp (pts_to r x) h'))
-//              (ensures interp (pts_to r y) h')
-//      = elim_star (pts_to r x) f h;
-//        let (hl, hr) = id_elim_star (pts_to r x) f h in
-//        assert (interp (pts_to r x) hl);
-//        assert (interp (pts_to r y) h);
-//        assert (interp (pts_to r x) h');
-//        assume (compatible pcm y x);
-//        pts_to_evolve r x y h';
-//        assert (interp (pts_to r y) h');
-//        ()
-//    in
-//    Classical.forall_intro (fun x ->
-//    Classical.forall_intro (fun y ->
-//    Classical.forall_intro (fun m ->
-//    Classical.forall_intro (fun f ->
-//    Classical.forall_intro (fun m' ->
-//    Classical.move_requires (aux x y m f) m')))))
