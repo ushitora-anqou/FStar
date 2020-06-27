@@ -213,6 +213,34 @@ let pts_to_body #a #p (r:ref a p) (f:perm) (v:Ghost.erased a) (h:history a p) =
       M.pts_to r h `star`
       pure (history_val h v f)
 
+let pts_to_body_witness_invariant #a #p (r:ref a p) (f:perm) (v:Ghost.erased a)
+  : Lemma (witness_invariant (pts_to_body r f v))
+          [SMTPat (pts_to_body r f v)]
+  = let aux (x y : history a p) (m:mem)
+       : Lemma (requires interp (pts_to_body r f v x) m
+                       /\ interp (pts_to_body r f v y) m)
+               (ensures  x == y)
+       =
+       assert (interp (pts_to_body r f v x) m);
+       assert (interp (pts_to_body r f v y) m);
+       M.pure_interp (history_val x v f) m;
+       M.pure_interp (history_val y v f) m;
+       assert (history_val x v f);
+       assert (history_val y v f);
+       assert (hval x == v);
+       assert (hval y == v);
+       assert (interp (M.pts_to r x) m);
+       assert (interp (M.pts_to r y) m);
+       M.pts_to_join r x y m;
+       ()
+    in
+    Classical.forall_intro (fun x ->
+    Classical.forall_intro (fun y ->
+    Classical.forall_intro (fun m ->
+    Classical.move_requires (aux x y) m)))
+
+
+
 let pts_to (#a:Type) (#p:Preorder.preorder a) (r:ref a p) (f:perm) (v:Ghost.erased a) =
     h_exists (pts_to_body r f v)
 
@@ -290,83 +318,63 @@ let rewrite_reveal_hide #a (x:a) (p:a -> slprop) ()
   : SteelT unit (p (Ghost.reveal (Ghost.hide x))) (fun _ -> p x)
   = SB.return ()
 
-//
-//let pts_to_framon (#a:Type) (r:ref a) (p:perm) : Lemma (is_frame_monotonic #a (fun v -> pts_to r p v)) =
-//  let aux (x y : a) (m:mem) (f:slprop)
-//    : Lemma (requires (interp (pts_to r p x `star` f) m /\ interp (pts_to r p y) m))
-//            (ensures  (slimp (pts_to r p x) (pts_to r p y)))
-//    =
-//    let (ml, mr) = id_elim_star (pts_to r p x) f m in
-//    assert (interp (pts_to r p x) ml);
-//    assert (interp (pts_to r p x) m);
-//    assert (interp (pts_to_raw r p y) m);
-//    assert (interp (Mem.pts_to r (Some (Ghost.reveal x, p))) m);
-//    assert (interp (Mem.pts_to r (Some (Ghost.reveal y, p))) m);
-//    Mem.pts_to_join r (Some (Ghost.reveal x, p)) (Some (Ghost.reveal y, p)) m;
-//    ()
-//  in
-//  Classical.forall_intro_4 (fun x y m -> Classical.move_requires (aux x y m))
-
-
-//  let pts_to_body #a #p (r:ref a p) (f:perm) (v:Ghost.erased a) (h:history a p) =
-//        M.pts_to r h `star`
-//        pure (history_val h v f)
-//  
-//  let pts_to (#a:Type) (#p:Preorder.preorder a) (r:ref a p) (f:perm) (v:Ghost.erased a) =
-//      h_exists (pts_to_body r f v)
-
-let pts_to_is_frame_monotonic (#a:Type) (#p:Preorder.preorder a)
+let pts_to_is_witness_invariant (#a:Type) (#p:Preorder.preorder a)
     (r:ref a p) (q:perm) 
-  : Lemma (is_frame_monotonic (fun (v:a) -> pts_to r q v))
-          [SMTPat (is_frame_monotonic (fun (v:a) -> pts_to r q v))]
-  = let aux (x y : a) (m:mem) (f : slprop) (m' : mem)
-       : Lemma (requires interp (pts_to r q x `star` f) m
-                       /\ interp (pts_to r q y) m
-                       /\ interp (pts_to r q x) m')
-               (ensures  interp (pts_to r q y) m')
+  : Lemma (witness_invariant (pts_to r q))
+          [SMTPat (witness_invariant (pts_to r q))]
+  = let aux (x y : erased a) (m:mem)
+       : Lemma (requires interp (pts_to r q x) m
+                       /\ interp (pts_to r q y) m)
+               (ensures  x == y)
        =
-       let (ml, mr) = id_elim_star (pts_to r q x) f m in
-
-       assert (interp (pts_to r q x) ml);
-       let p1 = pts_to_body r q x in
-       assert (interp (h_exists p1) ml);
-       let w1 = id_elim_exists p1 ml in
-       assert (interp (pts_to_body r q x w1) ml);
-
-
-       assert (interp (pts_to r q y) m);
-       let p2 = pts_to_body r q y in
-       assert (interp (h_exists p2) m);
-       let w2 = id_elim_exists p2 m in
-       assert (interp (pts_to_body r q y w2) m);
-
-       assert (interp (pts_to r q y) m);
-       Memory.pts_to_join r w1 w2 m;
-       assert (joinable pcm_history w1 w2);
-
+       assert (interp (h_exists (pts_to_body r q x)) m);
+       assert (interp (h_exists (pts_to_body r q y)) m);
+       let h1 : erased (history a p) = id_elim_exists (pts_to_body r q x) m in
+       let h2 : erased (history a p) = id_elim_exists (pts_to_body r q y) m in
+       assert (interp (pts_to_body r q x h1) m);
+       assert (interp (pts_to_body r q y h2) m);
+       M.pure_interp (history_val h1 x q) m;
+       M.pure_interp (history_val h2 y q) m;
+       assert (history_val h1 x q);
+       assert (history_val h2 y q);
+       assert (hval h1 == x);
+       assert (hval h2 == y);
+       assert (interp (M.pts_to r h1) m);
+       assert (interp (M.pts_to r h2) m);
+       // histories joinable means they have a common hval
+       M.pts_to_join r h1 h2 m;
        ()
     in
     Classical.forall_intro (fun x ->
     Classical.forall_intro (fun y ->
     Classical.forall_intro (fun m ->
-    Classical.forall_intro (fun f ->
-    Classical.forall_intro (fun m' ->
-    Classical.move_requires (aux x y m f) m')))))
-    
-let read_refine (#a:Type) (#q:perm) (#p:Preorder.preorder a) (#f:a -> slprop{is_frame_monotonic f})
+    Classical.move_requires (aux x y) m)))
+
+// plus coercion
+let pts_to_is_witness_invariant' (#a:Type) (#p:Preorder.preorder a)
+    (r:ref a p) (q:perm) 
+  : Lemma (witness_invariant (fun (v:a) -> pts_to r q v))
+          [SMTPat (witness_invariant (fun (v:a) -> pts_to r q v))]
+  = pts_to_is_witness_invariant r q
+
+let read_refine (#a:Type) (#q:perm) (#p:Preorder.preorder a) (#f:a -> slprop)
                 (r:ref a p)
   : SteelT a (h_exists (fun (v:a) -> pts_to r q v `star` f v))
              (fun v -> pts_to r q v `star` f v)
-  = pts_to_is_frame_monotonic r q;
-    star_is_frame_monotonic (fun (v:a) -> pts_to r q v) f;
-    let v : erased a = SB.witness_h_exists #_ #(fun (v:a) -> pts_to r q v `star` f v) () in
+
+  = pts_to_is_witness_invariant r q;
+    pts_to_is_witness_invariant' r q;
+    star_is_witinv_left (fun (v:a) -> pts_to r q v) f;
+    let v = SB.witness_h_exists () in
     SB.h_assert (pts_to r q v `star` f (Ghost.reveal v));
-    let sub () : SteelT (erased (history a p))
-                        (h_exists (pts_to_body r q v))
-                        (fun h -> pts_to_body r q v (reveal h))
-      = SB.witness_h_exists #_ #(pts_to_body r q v) ()
+    let h : Ghost.erased (history a p) =
+     let sub () : SteelT (Ghost.erased (history a p))
+                         (h_exists (pts_to_body r q v))
+                         (fun h -> pts_to_body r q v h) =
+       SB.witness_h_exists #_ #(pts_to_body r q v) ()
+     in
+     SB.frame sub _
     in
-    let h : Ghost.erased _ = SB.frame sub _ in
     SB.h_assert (pts_to_body r q v h `star` f (Ghost.reveal v));
     SB.h_assoc_r ();
     let hv = SB.frame (fun _ -> read r h) _ in

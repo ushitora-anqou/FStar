@@ -418,6 +418,9 @@ val pts_to_join (#a:Type) (#pcm:pcm a) (r:ref a pcm) (x y : a) (m:mem) :
   Lemma (requires (interp (pts_to r x) m /\ interp (pts_to r y) m))
         (ensures (joinable pcm x y))
 
+val pts_to_evolve (#a:Type u#a) (#pcm:_) (r:ref a pcm) (x y : a) (m:mem) :
+  Lemma (requires (interp (pts_to r x) m /\ compatible pcm y x))
+        (ensures  (interp (pts_to r y) m))
 
 val id_elim_star (p q:slprop) (m:mem)
   : Pure (erased mem & erased mem)

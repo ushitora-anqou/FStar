@@ -1084,7 +1084,11 @@ let pts_to_join (#a:Type) (#pcm:pcm a) (r:ref a pcm) (x y : a) (m:mem) :
   Lemma (requires (interp (pts_to r x) m /\ interp (pts_to r y) m))
         (ensures (joinable pcm x y)) = 
   H.pts_to_join r x y (heap_of_mem m)
-
+  
+let pts_to_evolve (#a:Type u#a) (#pcm:_) (r:ref a pcm) (x y : a) (m:mem)
+  : Lemma (requires (interp (pts_to r x) m /\ compatible pcm y x))
+          (ensures  (interp (pts_to r y) m))
+  = H.pts_to_evolve r x y (heap_of_mem m)
 
 let id_elim_star p q m =
   let starprop (ml:mem) (mr:mem) =

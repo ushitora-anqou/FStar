@@ -70,11 +70,11 @@ let pts_to_injective #a #p #q (r:ref a) (v0 v1:Ghost.erased a) (rest:Ghost.erase
                 (fun m -> pts_to_ref_injective r p q v0 v1 m;
                        assert (v0 == v1)))
 open Steel.FractionalPermission
-let ghost_read_refine (#a:Type) (#p:perm) (q:a -> slprop{is_frame_monotonic q}) (r:ref a)
+let ghost_read_refine (#a:Type) (#p:perm) (q:a -> slprop) (r:ref a)
   : SteelT (Ghost.erased a) (h_exists (fun (v:a) -> pts_to r p v `star` q v))
              (fun v -> pts_to r p v `star` q v)
-  = pts_to_framon r p;
-    star_is_frame_monotonic (fun (v:a) -> pts_to r p v) q;
+  = pts_to_witinv r p;
+    star_is_witinv_left (fun (v:a) -> pts_to r p v) q;
     witness_h_exists ()
 
 val intro_pure_p (#p:prop) (s:squash p) (h:slprop)
@@ -174,79 +174,23 @@ let chan_inv_cond (vsend:chan_val) (vrecv:chan_val) : slprop =
     then pure (vsend == vrecv)
     else chan_inv_step vrecv vsend
 
-let trace_until #p (r:trace_ref p) (vr:chan_val) =
-  h_exists (fun (tr:partial_trace_of p) ->
-                   MRef.pts_to r full_perm tr `star`
-                   pure (until tr == step vr.chan_prot vr.chan_msg))
+let trace_until_prop #p (r:trace_ref p) (vr:chan_val) (tr: partial_trace_of p) : slprop =
+  MRef.pts_to r full_perm tr `star`
+  pure (until tr == step vr.chan_prot vr.chan_msg)
 
+let trace_until #p (r:trace_ref p) (vr:chan_val) =
+  h_exists (trace_until_prop r vr)
+  
 let chan_inv_recv #p (c:chan_t p) (vsend:chan_val) =
   h_exists (fun (vrecv:chan_val) ->
       pts_to c.recv half vrecv `star`
       trace_until c.trace vrecv `star`
       chan_inv_cond vsend vrecv)
 
-let chan_inv_recv_framon #p (c:chan_t p)
-  : Lemma (is_frame_monotonic (chan_inv_recv #p c))
-          [SMTPat (is_frame_monotonic (chan_inv_recv #p c))]
-  = let aux (x y : chan_val) (m : mem) (f : slprop) (m' : mem)
-      : Lemma (requires (interp (chan_inv_recv c x `star` f) m
-                       /\ interp (chan_inv_recv c y) m
-                       /\ interp (chan_inv_recv c x) m'))
-              (ensures interp (chan_inv_recv c y) m')
-      = let (ml, mr) = id_elim_star (chan_inv_recv c x) f m in
-        let cirecf_f (c:chan_t p) (vsend:chan_val)
-                        = (fun (vrecv:chan_val) ->
-                                        pts_to c.recv half vrecv `star`
-                                        trace_until c.trace vrecv `star`
-                                        chan_inv_cond vsend vrecv)
-        in
-        let w1 : Ghost.erased chan_val = id_elim_exists (cirecf_f c x) ml in
-        let w2 : Ghost.erased chan_val = id_elim_exists (cirecf_f c y) m in
-        assert (interp (cirecf_f c x w1) ml);
-        assert (interp (cirecf_f c y w2) m);
-        assert (interp (pts_to c.recv half w1) ml);
-        assert (interp (pts_to c.recv half w1) m);
-        assert (interp (pts_to c.recv half w2) m);
-        Steel.HigherReference.pts_to_witinv c.recv half;
-        elim_wi (fun v -> pts_to c.recv half (Ghost.hide v)) w1 w2 m;
-        assert (w1 == w2);
-        Classical.forall_intro_2 pure_interp;
-        assert (interp (chan_inv_cond x w1) m);
-        assert (interp (chan_inv_cond y w2) m);
-        assert (interp (chan_inv_cond x w2) m);
-        assert (interp (chan_inv_cond y w1) m);
-        
-        assume (x.chan_ctr == w1.chan_ctr);
-        assert (x == Ghost.reveal w1);
-        assume (y.chan_ctr == w2.chan_ctr);
-        assert (y == Ghost.reveal w2);
-        
-        assume (x==y)
-    in
-    Classical.forall_intro (fun x ->
-    Classical.forall_intro (fun y ->
-    Classical.forall_intro (fun m ->
-    Classical.forall_intro (fun f ->
-    Classical.forall_intro (fun m' ->
-    Classical.move_requires (aux x y m f) m')))))
-    
 let chan_inv #p (c:chan_t p) : slprop =
   h_exists (fun (vsend:chan_val) ->
     pts_to c.send half vsend `star` chan_inv_recv c vsend)
     
-let chan_inv_framon (p:prot)
-  : Lemma (is_frame_monotonic (chan_inv #p))
-          [SMTPat (is_frame_monotonic (chan_inv #p))]
-  = let aux (x y : chan_t p) (m : mem) (f : slprop)
-      : Lemma (requires (interp (chan_inv x `star` f) m /\ interp (chan_inv y) m))
-              (ensures (slimp (chan_inv x) (chan_inv y)))
-      = let (ml, mr) = id_elim_star (chan_inv x) f m in
-        let w1 = id_elim_exists (fun (vsend:chan_val) -> pts_to x.send half vsend `star` chan_inv_recv x vsend) ml in
-        let w2 = id_elim_exists (fun (vsend:chan_val) -> pts_to y.send half vsend `star` chan_inv_recv y vsend) m in
-        admit () 
-    in
-    Classical.forall_intro_4 (fun x y m -> Classical.move_requires (aux x y m))
-
 let rewrite_eq_squash #a (x:a) (y:a{x==y}) (p:a -> slprop)
   : SteelT unit (p x) (fun _ -> p y)
   = h_assert (p y)
@@ -328,7 +272,7 @@ let in_state_slprop (p:prot) (vsend:chan_val) : slprop = pure (in_state_prop p v
 
 let in_state_slprop_framon (p:prot)
   : Lemma (is_frame_monotonic (in_state_slprop p))
-          [SMTPat (is_frame_monotonic (in_state_slprop p))]
+          // [SMTPat (is_frame_monotonic (in_state_slprop p))]
   = let aux (x y : chan_val) (m : mem) (f : slprop)
       : Lemma (requires (interp (in_state_slprop p x `star` f) m /\ interp (in_state_slprop p y) m))
               (ensures (slimp (in_state_slprop p x) (in_state_slprop p y)))
@@ -676,7 +620,7 @@ let trace_property #p (vr:chan_val) (tr:partial_trace_of p) : slprop =
 
 let trace_property_framon #p (vr:chan_val)
   : Lemma (is_frame_monotonic (trace_property #p vr))
-          [SMTPat (is_frame_monotonic (trace_property #p vr))]
+          //[SMTPat (is_frame_monotonic (trace_property #p vr))]
   = let aux (x y : partial_trace_of p) (m : mem) (f : slprop)
       : Lemma (requires (interp (trace_property vr x `star` f) m /\ interp (trace_property vr y) m))
               (ensures (slimp (trace_property vr x) (trace_property vr y)))
@@ -701,6 +645,7 @@ let update_trace #p (r:trace_ref p) (vr:chan_val) (vs:chan_val) (s:squash (chan_
                chan_inv_step vr vs);
     let sub () : SteelT _ _ _
        =
+        trace_property_framon #p vr;
         MRef.read_refine #(partial_trace_of p) #full_perm #(extended_to)
            #(trace_property vr)
            r
