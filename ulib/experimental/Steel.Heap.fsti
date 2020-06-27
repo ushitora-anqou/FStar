@@ -243,6 +243,12 @@ val pts_to_compatible
        (composable pcm v0 v1 /\
         interp (pts_to x (op pcm v0 v1)) h))
 
+(** If a reference points to two different values, they must be joinable in the PCM,
+even when the pointing does not happen separately. *)
+val pts_to_join (#a:Type u#a) (#pcm:_) (r:ref a pcm) (v1 v2:a) (m:heap)
+  : Lemma (requires (interp (pts_to r v1) m /\ interp (pts_to r v2) m))
+          (ensures joinable pcm v1 v2)
+          
 val pts_to_compatible_equiv (#a:Type)
                             (#pcm:_)
                             (x:ref a pcm)

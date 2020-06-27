@@ -1079,3 +1079,8 @@ let change_slprop (#opened_invariants:inames)
 let lift_h_exists #opened_invariants p = lift_tot_action (lift_heap_action opened_invariants (H.lift_h_exists p))
 
 let elim_pure #opened_invariants p = lift_tot_action (lift_heap_action opened_invariants (H.elim_pure p))
+
+let pts_to_join (#a:Type) (#pcm:pcm a) (r:ref a pcm) (x y : a) (m:mem) :
+  Lemma (requires (interp (pts_to r x) m /\ interp (pts_to r y) m))
+        (ensures (joinable pcm x y)) = 
+  H.pts_to_join r x y (heap_of_mem m)

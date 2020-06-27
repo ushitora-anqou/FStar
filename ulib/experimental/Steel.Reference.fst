@@ -117,3 +117,6 @@ let cas #t #uses r v v_old v_new = A.as_atomic_action (cas_action #t #uses r v v
 let raise_ref r p v = Basics.return r
 
 let lower_ref r p v = Basics.return r
+
+let pts_to_witinv r p =
+  H.pts_to_witinv r p

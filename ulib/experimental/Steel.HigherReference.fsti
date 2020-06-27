@@ -82,3 +82,5 @@ val cas_action (#t:Type) (eq: (x:t -> y:t -> b:bool{b <==> (x == y)}))
                    uses
                    (pts_to r full_perm v)
                    (fun b -> if b then pts_to r full_perm v_new else pts_to r full_perm v)
+
+val pts_to_witinv (#a:Type) (r:ref a) (p:perm) : Lemma (witness_invariant (pts_to r p))

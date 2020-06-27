@@ -293,3 +293,13 @@ let cas_action (#t:Type) (eq: (x:t -> y:t -> b:bool{b <==> (x == y)}))
                                   (cas_provides r v v_new b)
                                   m0 m1);
      b
+
+let pts_to_witinv (#a:Type) (r:ref a) (p:perm) : Lemma (witness_invariant (pts_to r p)) =
+  let aux (x y : a) (m:mem)
+    : Lemma (requires (interp (pts_to r p x) m /\ interp (pts_to r p y) m))
+            (ensures  (x == y))
+    =
+    pts_to_join r (Some (Ghost.reveal x, p)) (Some (Ghost.reveal y, p)) m;
+    ()
+  in
+  Classical.forall_intro_3 (fun x y -> Classical.move_requires (aux x y))

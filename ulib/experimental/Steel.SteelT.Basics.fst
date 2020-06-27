@@ -36,7 +36,7 @@ let intro_h_exists_erased (#a:Type) (x:Ghost.erased a) (p:(a -> slprop))
   : SteelT unit (p x) (fun _ -> h_exists p)
   = AB.lift_atomic_to_steelT (fun _ -> AB.intro_h_exists_erased x p)
 
-let witness_h_exists (#a:Type) (#p:a -> slprop) (_:unit)
+let witness_h_exists (#a:Type) (#p:a -> slprop{AB.witness_invariant p}) ()
   : SteelT (Ghost.erased a) (h_exists p) (fun x -> p x)
   = AB.lift_atomic_to_steelT AB.witness_h_exists
 

@@ -71,7 +71,46 @@ val elim_star_pat (p q:slprop) (m:hmem (p `star` q))
     [SMTPat (interp (p `star` q) m)]
 let elim_star_pat = elim_star
 
-let witness_h_exists (#a:Type) (#opened:_) (#p:a -> slprop) (_:unit)
+module G = FStar.Ghost
+
+val id_elim_star (p q:slprop) (m:mem)
+  : Pure (G.erased mem & G.erased mem)
+         (requires (interp (p `star` q) m))
+         (ensures (fun (ml, mr) -> disjoint ml mr
+                              /\ m == join ml mr
+                              /\ interp p ml
+                              /\ interp q mr))
+
+let id_elim_star p q m =
+  let starprop (ml:mem) (mr:mem) =
+      disjoint ml mr
+    /\ m == join ml mr
+    /\ interp p ml
+    /\ interp q mr
+  in
+  let p1 : mem -> prop = fun ml -> (exists mr. starprop ml mr) in
+  let ml = IndefiniteDescription.indefinite_description_tot _ p1 in
+  let starpropml mr : prop = starprop ml mr in // this prop annotation seems needed
+  let mr = IndefiniteDescription.indefinite_description_tot _ starpropml in
+  (ml, mr)
+
+val id_elim_exists (#a:Type) (p : a -> slprop) (m:mem)
+  : Pure (G.erased a)
+         (requires (interp (h_exists p) m))
+         (ensures (fun x -> interp (p x) m))
+
+let id_elim_exists #a p m =
+  let existsprop (x:a) =
+    interp (p x) m
+  in
+  Steel.Memory.elim_h_exists p m;
+  let x = IndefiniteDescription.indefinite_description_tot _ existsprop in
+  x
+
+// let witness_invariant #a (p : a -> slprop) =
+//   forall x y m. interp (p x) m /\ interp (p y) m ==> x == y
+
+let witness_h_exists (#a:Type) (#opened:_) (#p:(a -> slprop){witness_invariant p}) ()
   : SteelAtomic (Ghost.erased a) opened unobservable
                 (h_exists p) (fun x -> p x)
   =
@@ -93,63 +132,37 @@ let witness_h_exists (#a:Type) (#opened:_) (#p:a -> slprop) (_:unit)
                                                 (forall (x:(Ghost.erased a & nat)) (m1:mem).
                                                   postn m0 x m1 /\ mem_evolves m0 m1 ==> p (x,m1)))
   =
-
-
-
-//let star (p1 p2: slprop u#a) : slprop u#a =
-//  fun (h: heap) -> exists (h1 h2 : heap).
-//        h1 `disjoint` h2 /\
-//        h == join h1 h2 /\
-//        interp p1 h1 /\
-//        interp p2 h2
-
     let tp, n = tpn in
     assert (interp (h_exists p `star` locks_invariant opened m0) m0);
-    let starprop (ml mr : mem) = ml `disjoint` mr /\
-                         m0 == join ml mr /\
-                         interp (h_exists p) ml /\
-                         interp (locks_invariant opened m0) mr
-    in
-    elim_star (h_exists p) (locks_invariant opened m0) m0;
-    let starprop1 ml : prop = exists mr. starprop ml mr in // this prop annotation seems needed
-    let ml : Ghost.erased mem = FStar.IndefiniteDescription.indefinite_description_tot mem starprop1 in
-    assert (starprop1 ml);
-    let starpropml mr : prop = starprop ml mr in
-    assert (exists mr. starpropml mr);
-    let mr : Ghost.erased mem = FStar.IndefiniteDescription.indefinite_description_tot mem starpropml in
-    assert (interp (h_exists p) ml /\ interp (locks_invariant opened m0) mr);
+    let (ml, mr) = id_elim_star (h_exists p) (locks_invariant opened m0) m0 in
     assert (interp (h_exists p) ml);
-    Steel.Memory.elim_h_exists p ml;
-    assert (exists x. interp (p x) ml);
-    let x = FStar.IndefiniteDescription.indefinite_description_tot a (fun x -> interp (p x) ml) in
+    assert (interp (locks_invariant opened m0) mr);
+    let x = id_elim_exists p ml in
     assert (interp (p x) ml);
+    assert (interp (p x) m0);
     assert (interp (p x) ml /\ interp (locks_invariant opened m0) mr);
-    Steel.Memory.intro_star (p x) (locks_invariant opened m0) ml mr;
-    // COULD THIS HELP?
-    assume (forall x y m. interp (p x) m /\ interp (p y) m ==> x == y);
-    let key0 (m :mem) : Lemma (requires interp (h_exists p) m)
-                              (ensures (interp (p x) m)) =
-        Steel.Memory.elim_h_exists p m;
-        assert (exists y. interp (p y) m);
-        let y = FStar.IndefiniteDescription.indefinite_description_tot a
-                 (fun y -> interp (p y) m) in
-        assert (interp (p y) m);
-        assume (interp (p x) m);
-        ()
-    in
-    let key () : Lemma (forall m. interp (h_exists p) m ==> interp (p x) m) =
-      Classical.forall_intro (Classical.move_requires key0)
-    in
-    admit ();
-    key ();
+    assert (forall y frame. interp (p y `star` frame) ml ==> interp (p x `star` frame) ml);
     let sub (frame:slprop)
-      : Lemma (requires (interp ((h_exists p `star` frame) `star` locks_invariant opened m0) m0))
-              (ensures  (interp ((p x        `star` frame) `star` locks_invariant opened m0) m0))
+      : Lemma (requires (interp ((h_exists p `star` frame)) m0))
+              (ensures  (interp ((p x        `star` frame)) m0))
       =
-           elim_star (h_exists p `star` frame) (locks_invariant opened m0) m0;
-           admit ()
+         let (m1, m2) = id_elim_star (h_exists p) frame m0 in
+         let y = id_elim_exists p m1 in
+         assert (interp (p y) m1);
+         intro_star (p y) frame m1 m2;
+         ()
     in
     Classical.forall_intro (Classical.move_requires sub);
+    let frameinv (frame:slprop) :
+      Lemma (requires (interp ((h_exists p `star` frame) `star` locks_invariant opened m0) m0))
+            (ensures  (interp ((p x        `star` frame) `star` locks_invariant opened m0) m0))
+      =
+      star_associative (h_exists p) frame (locks_invariant opened m0);
+      sub (frame `star` locks_invariant opened m0);
+      star_associative (p x) frame (locks_invariant opened m0);
+      ()
+    in
+    Classical.forall_intro (Classical.move_requires frameinv);
     assert (forall frame.
              (interp ((h_exists p `star` frame) `star` locks_invariant opened m0) m0)
              ==>

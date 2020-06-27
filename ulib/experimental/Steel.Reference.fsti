@@ -77,3 +77,5 @@ val lower_ref (#a:Type u#0) (r:H.ref (U.raise_t a)) (p:perm) (v:erased (U.raise_
   : SteelT (ref a)
            (H.pts_to r p v)
            (fun r' -> pts_to r' p (U.downgrade_val (Ghost.reveal v)))
+
+val pts_to_witinv (#a:Type u#0) (r:ref a) (p:perm) : Lemma (witness_invariant (pts_to r p))

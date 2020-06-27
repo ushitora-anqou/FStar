@@ -277,6 +277,10 @@ let pts_to_cell (#a:Type u#a) (pcm:pcm a) (v:a) (c:cell u#a) =
   pcm == pcm' /\
   compatible pcm v v'
 
+let pts_to_cell_join (#a:Type u#a) (pcm:pcm a) (v1 v2:a) (c:cell u#a)
+  : Lemma (requires (pts_to_cell pcm v1 c /\ pts_to_cell pcm v2 c))
+          (ensures joinable pcm v1 v2)
+          = ()
 
 let pts_to (#a:Type u#a) (#pcm:_) (r:ref a pcm) (v:a) : slprop u#a =
   let hprop  (h: heap) : Tot prop =
@@ -297,6 +301,7 @@ let pts_to (#a:Type u#a) (#pcm:_) (r:ref a pcm) (v:a) : slprop u#a =
   | None, None, _ -> ()
   );
   hprop
+
 
 let h_and (p1 p2:slprop u#a) : slprop u#a =
   fun (h: heap) -> p1 h /\ p2 h
@@ -510,6 +515,11 @@ let pts_to_compatible (#a:Type u#a)
                       (m:heap u#a) =
     FStar.Classical.forall_intro (FStar.Classical.move_requires (pts_to_compatible_fwd x v0 v1));
     FStar.Classical.forall_intro (FStar.Classical.move_requires (pts_to_compatible_bk x v0 v1))
+    
+let pts_to_join (#a:Type u#a) (#pcm:_) (r:ref a pcm) (v1 v2:a) (m:heap)
+  : Lemma (requires (interp (pts_to r v1) m /\ interp (pts_to r v2) m))
+          (ensures joinable pcm v1 v2)
+          = ()
 
 let pts_to_compatible_equiv (#a:Type) (#pcm:_) (x:ref a pcm) (v0:a) (v1:a{composable pcm v0 v1})
   = FStar.Classical.forall_intro (pts_to_compatible x v0 v1)

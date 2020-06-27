@@ -137,3 +137,8 @@ let exclusive_is_frame_preserving (#a: Type u#a) (p:pcm a) (x:a)
           (ensures frame_preserving p x p.p.one)
   = p.is_unit x;
     p.is_unit p.p.one
+
+
+(** Two elements are joinable when they can evolve to a common point. *)
+let joinable #a (p:pcm a) (x y : a) : prop =
+  exists z. compatible p x z /\ compatible p y z

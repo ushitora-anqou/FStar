@@ -202,9 +202,12 @@ let h_affine (#opened_invariants:_) (p q:slprop)
   : SteelAtomic unit opened_invariants unobservable (p `star` q) (fun _ -> p)
   = change_slprop (p `star` q) p (fun m -> affine_star p q m)
 
+let witness_invariant #a (p : a -> slprop) : prop =
+  forall x y m. interp (p x) m /\ interp (p y) m ==> x == y
+  
 (** We assume this action for now. See the discussion in Steel.Heap.fst for
     how we plan to derive this action with an enhancement to the semantics *)
-val witness_h_exists (#a:Type) (#opened_invariants:_) (#p:a -> slprop) (_:unit)
+val witness_h_exists (#a:Type) (#opened_invariants:_) (#p:(a -> slprop){witness_invariant p}) (_:unit)
   : SteelAtomic (Ghost.erased a) opened_invariants unobservable
                 (h_exists p) (fun x -> p x)
 
