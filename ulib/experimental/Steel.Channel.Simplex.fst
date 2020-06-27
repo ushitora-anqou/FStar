@@ -718,7 +718,6 @@ let send_receive_prelude (#p:prot) (cc:chan p)
              chan_inv_cond (fst v) (snd v))
   = let c : chan_t p = cc.chan_chan in
     let l : lock (chan_inv c) = cc.chan_lock in
-    h_admit _ _;
     let _ = acquire l in
     h_assert (chan_inv c);
     let vs = read_refine (chan_inv_recv c) c.send in
