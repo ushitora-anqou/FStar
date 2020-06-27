@@ -24,13 +24,10 @@ module Ins = Steel.Semantics.Instantiate
 
 open Steel.Memory
 
-let join_preserves_interp (hp:hprop) (m0:hmem hp) (m1:mem{disjoint m0 m1})
-: Lemma
-  (interp hp (join m0 m1))
-  [SMTPat (interp hp (join m0 m1))]
-= intro_emp m1;
-  intro_star hp emp m0 m1;
-  affine_star hp emp (join m0 m1)
+let join_preserves_interp hp m0 m1
+  = intro_emp m1;
+    intro_star hp emp m0 m1;
+    affine_star hp emp (join m0 m1)
 
 #push-options "--query_stats"
 let _test (pre:slprop) (h_pre:hmem pre) (h:mem{disjoint h_pre h}) =
@@ -48,11 +45,12 @@ let respects_binary_fp #a #pre #post q
       q h_pre x h_post <==> q h_pre x (join h_post h))
 let reveal_respects_binary_fp q = ()
 
+
 #push-options "--warn_error -271"
-let ens_depends_only_on (#a:Type) (pre:Mem.hprop) (post:a -> Mem.hprop)
+let ens_depends_only_on (#a:Type) (pre:Mem.slprop) (post:a -> Mem.slprop)
   (q:(hmem pre -> x:a -> hmem (post x) -> prop))
 
-= let join_preserves_interp (hp:hprop) (m0:hmem hp) (m1:mem{disjoint m0 m1})
+= let join_preserves_interp (hp:slprop) (m0:hmem hp) (m1:mem{disjoint m0 m1})
     : Lemma (interp hp (join m0 m1))
       [SMTPat ()] = join_preserves_interp hp m0 m1 in
   (
@@ -67,8 +65,8 @@ let ens_depends_only_on (#a:Type) (pre:Mem.hprop) (post:a -> Mem.hprop)
   )
 #pop-options
 
-type pre_t = hprop u#1
-type post_t (a:Type) = a -> hprop u#1
+type pre_t = slprop u#1
+type post_t (a:Type) = a -> slprop u#1
 type req_t (pre:pre_t) = q:(hmem pre -> prop){
   forall (m0:hmem pre) (m1:mem{disjoint m0 m1}). q m0 <==> q (join m0 m1)
 }
@@ -259,5 +257,3 @@ let cond (#a:Type) (b:bool) (p: bool -> slprop) (q: bool -> a -> slprop)
     cond_aux b p q a1 a2
 
 let add_action f = Steel?.reflect (action_as_repr f)
-
-
