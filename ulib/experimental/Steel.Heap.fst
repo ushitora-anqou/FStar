@@ -519,7 +519,14 @@ let pts_to_compatible (#a:Type u#a)
 let pts_to_join (#a:Type u#a) (#pcm:_) (r:ref a pcm) (v1 v2:a) (m:heap)
   : Lemma (requires (interp (pts_to r v1) m /\ interp (pts_to r v2) m))
           (ensures joinable pcm v1 v2)
-          = ()
+  = ()
+          
+let pts_to_join' (#a:Type u#a) (#pcm:_) (r:ref a pcm) (v1 v2:a) (m:heap)
+  : Lemma (requires (interp (pts_to r v1) m /\ interp (pts_to r v2) m))
+          (ensures (exists z. compatible pcm v1 z /\ compatible pcm v2 z /\
+                         interp (pts_to r z) m))
+  = let Ref a' pcm' v' = (select_addr m r) in
+    compatible_refl pcm v'
 
 let pts_to_compatible_equiv (#a:Type) (#pcm:_) (x:ref a pcm) (v0:a) (v1:a{composable pcm v0 v1})
   = FStar.Classical.forall_intro (pts_to_compatible x v0 v1)
@@ -1102,3 +1109,62 @@ let elim_pure (p:prop)
       = fun h -> (| (), h |)
     in
     refined_pre_action_as_action f
+    
+let id_elim_star p q m =
+  let starprop (ml:heap) (mr:heap) =
+      disjoint ml mr
+    /\ m == join ml mr
+    /\ interp p ml
+    /\ interp q mr
+  in
+  elim_star p q m;
+  let p1 : heap -> prop = fun ml -> (exists mr. starprop ml mr) in
+  let ml = IndefiniteDescription.indefinite_description_tot _ p1 in
+  let starpropml mr : prop = starprop ml mr in // this prop annotation seems needed
+  let mr = IndefiniteDescription.indefinite_description_tot _ starpropml in
+  (ml, mr)
+
+let id_elim_exists #a p m =
+  let existsprop (x:a) = interp (p x) m in
+  elim_h_exists p m;
+  let x = IndefiniteDescription.indefinite_description_tot _ existsprop in
+  x
+
+let slimp (p q : slprop) : prop =
+  forall h. interp p h ==> interp q h
+
+let is_frame_monotonic #a (p : a -> slprop) : prop =
+  forall x y h frame. interp (p x `star` frame) h /\ interp (p y) h ==> slimp (p x) (p y)
+
+let pts_to_evolve (#a:Type u#a) (#pcm:_) (r:ref a pcm) (x y : a) (h:heap)
+  : Lemma (requires (interp (pts_to r x) h /\ compatible pcm y x))
+          (ensures  (interp (pts_to r y) h))
+  = let Ref a' pcm' v' = (select_addr h r) in
+    compatible_trans pcm y x v'
+
+
+// don't think this is true
+//let pts_to_framon (#a:Type u#a) (#pcm:_) (r:ref a pcm)
+//  : Lemma (is_frame_monotonic (pts_to r))
+//          [SMTPat (is_frame_monotonic (pts_to r))]
+//  = let aux (x y : a) (h : heap) (f : slprop) (h' : heap)
+//      : Lemma (requires (interp (pts_to r x `star` f) h
+//                       /\ interp (pts_to r y) h
+//                       /\ interp (pts_to r x) h'))
+//              (ensures interp (pts_to r y) h')
+//      = elim_star (pts_to r x) f h;
+//        let (hl, hr) = id_elim_star (pts_to r x) f h in
+//        assert (interp (pts_to r x) hl);
+//        assert (interp (pts_to r y) h);
+//        assert (interp (pts_to r x) h');
+//        assume (compatible pcm y x);
+//        pts_to_evolve r x y h';
+//        assert (interp (pts_to r y) h');
+//        ()
+//    in
+//    Classical.forall_intro (fun x ->
+//    Classical.forall_intro (fun y ->
+//    Classical.forall_intro (fun m ->
+//    Classical.forall_intro (fun f ->
+//    Classical.forall_intro (fun m' ->
+//    Classical.move_requires (aux x y m f) m')))))

@@ -118,5 +118,8 @@ let raise_ref r p v = Basics.return r
 
 let lower_ref r p v = Basics.return r
 
+let pts_to_framon r p =
+  H.pts_to_framon r p
+
 let pts_to_witinv r p =
   H.pts_to_witinv r p

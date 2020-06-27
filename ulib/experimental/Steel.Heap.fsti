@@ -249,6 +249,12 @@ val pts_to_join (#a:Type u#a) (#pcm:_) (r:ref a pcm) (v1 v2:a) (m:heap)
   : Lemma (requires (interp (pts_to r v1) m /\ interp (pts_to r v2) m))
           (ensures joinable pcm v1 v2)
           
+(** Further the value in the heap is above both *)
+val pts_to_join' (#a:Type u#a) (#pcm:_) (r:ref a pcm) (v1 v2:a) (m:heap)
+  : Lemma (requires (interp (pts_to r v1) m /\ interp (pts_to r v2) m))
+          (ensures (exists z. compatible pcm v1 z /\ compatible pcm v2 z /\
+                         interp (pts_to r z) m))
+
 val pts_to_compatible_equiv (#a:Type)
                             (#pcm:_)
                             (x:ref a pcm)
@@ -534,3 +540,20 @@ val lift_h_exists (#a:_) (p:a -> slprop)
 
 val elim_pure (p:prop)
   : action (pure p) (u:unit{p}) (fun _ -> emp)
+
+val id_elim_star (p q:slprop) (h:heap)
+  : Pure (erased heap & erased heap )
+         (requires (interp (p `star` q) h))
+         (ensures (fun (hl, hr) -> disjoint hl hr
+                              /\ h == join hl hr
+                              /\ interp p hl
+                              /\ interp q hr))
+
+val id_elim_exists (#a:Type) (p : a -> slprop) (h:heap)
+  : Pure (erased a)
+         (requires (interp (h_exists p) h))
+         (ensures (fun x -> interp (p x) h))
+
+val pts_to_evolve (#a:Type u#a) (#pcm:_) (r:ref a pcm) (x y : a) (h:heap)
+  : Lemma (requires (interp (pts_to r x) h /\ compatible pcm y x))
+          (ensures  (interp (pts_to r y) h))

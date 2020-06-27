@@ -1084,3 +1084,79 @@ let pts_to_join (#a:Type) (#pcm:pcm a) (r:ref a pcm) (x y : a) (m:mem) :
   Lemma (requires (interp (pts_to r x) m /\ interp (pts_to r y) m))
         (ensures (joinable pcm x y)) = 
   H.pts_to_join r x y (heap_of_mem m)
+
+
+let id_elim_star p q m =
+  let starprop (ml:mem) (mr:mem) =
+      disjoint ml mr
+    /\ m == join ml mr
+    /\ interp p ml
+    /\ interp q mr
+  in
+  elim_star p q m;
+  let p1 : mem -> prop = fun ml -> (exists mr. starprop ml mr) in
+  let ml = IndefiniteDescription.indefinite_description_tot _ p1 in
+  let starpropml mr : prop = starprop ml mr in // this prop annotation seems needed
+  let mr = IndefiniteDescription.indefinite_description_tot _ starpropml in
+  (ml, mr)
+
+let id_elim_exists #a p m =
+  let existsprop (x:a) =
+    interp (p x) m
+  in
+  elim_h_exists p m;
+  let x = IndefiniteDescription.indefinite_description_tot _ existsprop in
+  x
+
+
+let slimp_star (p q r s : slprop)
+  : Lemma (requires (slimp p q /\ slimp r s))
+          (ensures (slimp (p `star` r) (q `star` s)))
+  = let aux (m:mem) : Lemma (requires (interp (p `star` r) m))
+                            (ensures (interp (q `star` s) m))
+    =
+      let (ml, mr) = id_elim_star p r m in
+      intro_star q s ml mr
+   in
+   Classical.forall_intro (Classical.move_requires aux)
+
+let elim_wi #a (p : a -> slprop{witness_invariant p}) (x y : a) (m : mem)
+  : Lemma (requires (interp (p x) m /\ interp (p y) m))
+          (ensures (x == y))
+  = ()
+  
+let witinv_framon (#a:Type) (p : a -> slprop)
+  : Lemma (witness_invariant p ==> is_frame_monotonic p)
+          [SMTPatOr [[SMTPat (witness_invariant p)]; [SMTPat (is_frame_monotonic p)]]]
+  = ()
+          
+let star_is_frame_monotonic (#a:Type)
+    (f g : a -> slprop)
+  : Lemma (requires (is_frame_monotonic f /\ is_frame_monotonic g))
+          (ensures (is_frame_monotonic (fun x -> f x `star` g x)))
+          //[SMTPat (is_frame_monotonic (fun x -> f x `star` g x))]
+  = let aux (x y : a) (m:mem) (frame : slprop)
+       : Lemma (requires interp ((f x `star` g x) `star` frame) m
+                        /\ interp (f y `star` g y) m)
+               (ensures (slimp (f x `star` g x) (f y `star` g y)))
+       = assert (slimp (f x) (f y));
+         star_associative (f x) (g x) frame;
+         Classical.forall_intro (affine_star (g x) frame);
+         assert (slimp (g x) (g y));
+         slimp_star (f x) (f y) (g x) (g y);
+         ()
+    in
+    Classical.forall_intro_4 (fun x y m -> Classical.move_requires (aux x y m));
+    ()
+
+let star_is_witinv_left (#a:Type)
+    (f g : a -> slprop)
+  : Lemma (requires (witness_invariant f))
+          (ensures  (witness_invariant (fun x -> f x `star` g x)))
+  = ()
+          
+let star_is_witinv_right (#a:Type)
+    (f g : a -> slprop)
+  : Lemma (requires (witness_invariant g))
+          (ensures  (witness_invariant (fun x -> f x `star` g x)))
+  = ()

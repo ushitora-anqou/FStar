@@ -107,7 +107,8 @@ let pcm_history_preorder #a #p : Preorder.preorder (history a p) =
     | Current vh0 _, Current vh1 _ ->
       vh1 `Q.extends` vh0
 
-#push-options "--max_fuel 1 --initial_fuel 1 --max_ifuel 1 --z3rlimit_factor 4 --query_stats --z3cliopt smt.qi.eager_threshold=100"
+// This proof is known to be very brittle.
+#push-options "--retry 10 --max_fuel 1 --initial_fuel 1 --max_ifuel 1 --query_stats --z3cliopt smt.qi.eager_threshold=100 --z3rlimit_factor 8"
 let pcm_history_induces_preorder #a #p
   : Lemma (Q.induces_preorder (pcm_history #a #p)
                               (pcm_history_preorder #a #p))
@@ -289,14 +290,83 @@ let rewrite_reveal_hide #a (x:a) (p:a -> slprop) ()
   : SteelT unit (p (Ghost.reveal (Ghost.hide x))) (fun _ -> p x)
   = SB.return ()
 
+//
+//let pts_to_framon (#a:Type) (r:ref a) (p:perm) : Lemma (is_frame_monotonic #a (fun v -> pts_to r p v)) =
+//  let aux (x y : a) (m:mem) (f:slprop)
+//    : Lemma (requires (interp (pts_to r p x `star` f) m /\ interp (pts_to r p y) m))
+//            (ensures  (slimp (pts_to r p x) (pts_to r p y)))
+//    =
+//    let (ml, mr) = id_elim_star (pts_to r p x) f m in
+//    assert (interp (pts_to r p x) ml);
+//    assert (interp (pts_to r p x) m);
+//    assert (interp (pts_to_raw r p y) m);
+//    assert (interp (Mem.pts_to r (Some (Ghost.reveal x, p))) m);
+//    assert (interp (Mem.pts_to r (Some (Ghost.reveal y, p))) m);
+//    Mem.pts_to_join r (Some (Ghost.reveal x, p)) (Some (Ghost.reveal y, p)) m;
+//    ()
+//  in
+//  Classical.forall_intro_4 (fun x y m -> Classical.move_requires (aux x y m))
 
-let read_refine (#a:Type) (#q:perm) (#p:Preorder.preorder a) (#f:a -> slprop)
+
+//  let pts_to_body #a #p (r:ref a p) (f:perm) (v:Ghost.erased a) (h:history a p) =
+//        M.pts_to r h `star`
+//        pure (history_val h v f)
+//  
+//  let pts_to (#a:Type) (#p:Preorder.preorder a) (r:ref a p) (f:perm) (v:Ghost.erased a) =
+//      h_exists (pts_to_body r f v)
+
+let pts_to_is_frame_monotonic (#a:Type) (#p:Preorder.preorder a)
+    (r:ref a p) (q:perm) 
+  : Lemma (is_frame_monotonic (fun (v:a) -> pts_to r q v))
+          [SMTPat (is_frame_monotonic (fun (v:a) -> pts_to r q v))]
+  = let aux (x y : a) (m:mem) (f : slprop) (m' : mem)
+       : Lemma (requires interp (pts_to r q x `star` f) m
+                       /\ interp (pts_to r q y) m
+                       /\ interp (pts_to r q x) m')
+               (ensures  interp (pts_to r q y) m')
+       =
+       let (ml, mr) = id_elim_star (pts_to r q x) f m in
+
+       assert (interp (pts_to r q x) ml);
+       let p1 = pts_to_body r q x in
+       assert (interp (h_exists p1) ml);
+       let w1 = id_elim_exists p1 ml in
+       assert (interp (pts_to_body r q x w1) ml);
+
+
+       assert (interp (pts_to r q y) m);
+       let p2 = pts_to_body r q y in
+       assert (interp (h_exists p2) m);
+       let w2 = id_elim_exists p2 m in
+       assert (interp (pts_to_body r q y w2) m);
+
+       assert (interp (pts_to r q y) m);
+       Memory.pts_to_join r w1 w2 m;
+       assert (joinable pcm_history w1 w2);
+
+       ()
+    in
+    Classical.forall_intro (fun x ->
+    Classical.forall_intro (fun y ->
+    Classical.forall_intro (fun m ->
+    Classical.forall_intro (fun f ->
+    Classical.forall_intro (fun m' ->
+    Classical.move_requires (aux x y m f) m')))))
+    
+let read_refine (#a:Type) (#q:perm) (#p:Preorder.preorder a) (#f:a -> slprop{is_frame_monotonic f})
                 (r:ref a p)
   : SteelT a (h_exists (fun (v:a) -> pts_to r q v `star` f v))
              (fun v -> pts_to r q v `star` f v)
-  = let v = SB.witness_h_exists () in
+  = pts_to_is_frame_monotonic r q;
+    star_is_frame_monotonic (fun (v:a) -> pts_to r q v) f;
+    let v : erased a = SB.witness_h_exists #_ #(fun (v:a) -> pts_to r q v `star` f v) () in
     SB.h_assert (pts_to r q v `star` f (Ghost.reveal v));
-    let h : Ghost.erased _ = SB.frame (fun _ -> SB.witness_h_exists #_ #(pts_to_body r q v) ()) _ in
+    let sub () : SteelT (erased (history a p))
+                        (h_exists (pts_to_body r q v))
+                        (fun h -> pts_to_body r q v (reveal h))
+      = SB.witness_h_exists #_ #(pts_to_body r q v) ()
+    in
+    let h : Ghost.erased _ = SB.frame sub _ in
     SB.h_assert (pts_to_body r q v h `star` f (Ghost.reveal v));
     SB.h_assoc_r ();
     let hv = SB.frame (fun _ -> read r h) _ in

@@ -31,19 +31,21 @@ let lockprop (p:slprop) (r:ref bool) (b:bool) : slprop =
 let lockinv (p:slprop) (r:ref bool) : slprop =
   h_exists (lockprop p r)
 
-let lockprop_witinv (p:slprop) (r:ref bool)
-  : Lemma (witness_invariant (lockprop p r))
-          [SMTPat (witness_invariant (lockprop p r))]
+let lockprop_framon (p:slprop) (r:ref bool)
+  : Lemma (is_frame_monotonic (lockprop p r))
+          [SMTPat (is_frame_monotonic (lockprop p r))]
   =
-  let aux (x y : bool) (m:mem)
-    : Lemma (requires (interp (lockprop p r x) m /\ interp (lockprop p r y) m))
-            (ensures  (x == y))
-    = assert (interp (pts_to r full_perm x) m);
-      assert (interp (pts_to r full_perm y) m);
-      pts_to_witinv r full_perm;
-      ()
+  let aux (x y : bool) (m:mem) (f:slprop)
+    : Lemma (requires (interp (lockprop p r x `star` f) m /\ interp (lockprop p r y) m))
+            (ensures  (slimp (lockprop p r x) (lockprop p r y)))
+    = elim_star (lockprop p r x) f m;
+      let p (b:bool) : slprop = pts_to r full_perm (Ghost.hide b) in
+      assert (interp (p x) m);
+      assert (interp (p y) m);
+      pts_to_witinv #bool r full_perm;
+      elim_wi p x y m // ugh... why do I need to call this!?
   in 
-  Classical.forall_intro_3 (fun x y -> Classical.move_requires (aux x y));
+  Classical.forall_intro_4 (fun x y m -> Classical.move_requires (aux x y m));
   ()
 
 let lock_t = ref bool & iname
