@@ -270,19 +270,6 @@ let next_chan_val (#p:sprot) (x:msg_t p) (vs0:chan_val { in_state_prop p vs0 })
 
 let in_state_slprop (p:prot) (vsend:chan_val) : slprop = pure (in_state_prop p vsend)
 
-let in_state_slprop_framon (p:prot)
-  : Lemma (is_frame_monotonic (in_state_slprop p))
-          // [SMTPat (is_frame_monotonic (in_state_slprop p))]
-  = let aux (x y : chan_val) (m : mem) (f : slprop)
-      : Lemma (requires (interp (in_state_slprop p x `star` f) m /\ interp (in_state_slprop p y) m))
-              (ensures (slimp (in_state_slprop p x) (in_state_slprop p y)))
-      = let (ml, mr) = id_elim_star (in_state_slprop p x) f m in
-        pure_interp (in_state_prop p x) m;
-        pure_interp (in_state_prop p y) m;
-        ()
-    in
-    Classical.forall_intro_4 (fun x y m -> Classical.move_requires (aux x y m))
-  
 let in_state (r:ref chan_val) (p:prot) =
   h_exists (fun (vsend:chan_val) ->
     pts_to r half vsend `star` in_state_slprop p vsend)
@@ -613,25 +600,8 @@ let write_trace #p (r:trace_ref p)
   = let _ = MRef.write #_ #_ #old_tr r new_tr in
     return ()
 
-#set-options "--print_implicits"
-
 let trace_property #p (vr:chan_val) (tr:partial_trace_of p) : slprop =
   pure (eq (until tr) (step vr.chan_prot vr.chan_msg))
-
-let trace_property_framon #p (vr:chan_val)
-  : Lemma (is_frame_monotonic (trace_property #p vr))
-          //[SMTPat (is_frame_monotonic (trace_property #p vr))]
-  = let aux (x y : partial_trace_of p) (m : mem) (f : slprop)
-      : Lemma (requires (interp (trace_property vr x `star` f) m /\ interp (trace_property vr y) m))
-              (ensures (slimp (trace_property vr x) (trace_property vr y)))
-      = let (ml, mr) = id_elim_star (trace_property vr x) f m in
-        assert (interp (trace_property vr x) ml);
-        assert (interp (trace_property vr y) m);
-        pure_interp (eq (until x) (step vr.chan_prot vr.chan_msg)) ml;
-        pure_interp (eq (until y) (step vr.chan_prot vr.chan_msg)) m;
-        ()
-    in
-    Classical.forall_intro_4 (fun x y m -> Classical.move_requires (aux x y m))
 
 let update_trace #p (r:trace_ref p) (vr:chan_val) (vs:chan_val) (s:squash (chan_inv_step_p vr vs))
   : SteelT unit
@@ -645,7 +615,6 @@ let update_trace #p (r:trace_ref p) (vr:chan_val) (vs:chan_val) (s:squash (chan_
                chan_inv_step vr vs);
     let sub () : SteelT _ _ _
        =
-        trace_property_framon #p vr;
         MRef.read_refine #(partial_trace_of p) #full_perm #(extended_to)
            #(trace_property vr)
            r
@@ -931,6 +900,7 @@ let rewrite_eq_squash_tok #a (x:a) (y:a) ($tok:squash (x==y)) (p:a -> slprop)
   : SteelT unit (p x) (fun _ -> p y)
   = h_assert (p y)
 
+#push-options "--z3rlimit_factor 4"
 let witness_trace_until #q (r:trace_ref q) (vr:chan_val)
   : SteelT (partial_trace_of q)
            (trace_until r vr)
@@ -945,6 +915,7 @@ let witness_trace_until #q (r:trace_ref q) (vr:chan_val)
     h_commute _ _;
     h_assert (trace_until r vr `star` pure (MRef.witnessed r (history_p tr)));
     return #(partial_trace_of q) tr
+#pop-options
 
 let trace #q (cc:chan q)
   : SteelT (partial_trace_of q) emp (fun tr -> history cc tr)

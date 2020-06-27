@@ -16,7 +16,7 @@ val pts_to (#a:Type) (#p:Preorder.preorder a) (r:ref a p) (f:perm) (v:Ghost.eras
 val alloc (#a:Type) (p:Preorder.preorder a) (v:a)
   : SteelT (ref a p) emp (fun r -> pts_to r full_perm v)
 
-val read_refine (#a:Type) (#q:perm) (#p:Preorder.preorder a) (#frame:a -> slprop{is_frame_monotonic frame})
+val read_refine (#a:Type) (#q:perm) (#p:Preorder.preorder a) (#frame:a -> slprop)
                 (r:ref a p)
   : SteelT a (h_exists (fun (v:a) -> pts_to r q v `star` frame v))
              (fun v -> pts_to r q v `star` frame v)
