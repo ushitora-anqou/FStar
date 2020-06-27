@@ -134,6 +134,7 @@ let extract_pure (p:prop)
     return u
 
 module U = FStar.Universe
+
 let lift_h_exists (#a:_) (p:a -> slprop)
   : SteelT unit (h_exists p)
                 (fun _ -> h_exists #(U.raise_t a) (U.lift_dom p))

@@ -89,7 +89,8 @@ let hmem (p:slprop u#a) = m:mem u#a {interp p m}
 let equiv (p1 p2:slprop) : prop =
   forall m. interp p1 m <==> interp p2 m
 
-let slimp (p1 p2:slprop) : prop =
+(** Implication of slprops *)
+let slimp (p1 p2 : slprop) : prop =
   forall m. interp p1 m ==> interp p2 m
 
 (** A memory maps a [ref]erence to its associated value *)
@@ -406,6 +407,17 @@ val change_slprop (#opened_invariants:inames)
 
 module U = FStar.Universe
 
+let is_frame_monotonic #a (p : a -> slprop) : prop =
+  forall x y m frame. interp (p x `star` frame) m /\ interp (p y) m ==> slimp (p x) (p y)
+
+let witness_invariant #a (p : a -> slprop) =
+  forall x y m. interp (p x) m /\ interp (p y) m ==> x == y
+
+val witness_h_exists (#opened_invariants:_) (#a:_) (p:(a -> slprop){is_frame_monotonic p})
+  : action_except (erased a) opened_invariants
+           (h_exists p)
+           (fun v -> p v)
+
 val lift_h_exists (#opened_invariants:_) (#a:_) (p:a -> slprop)
   : action_except unit opened_invariants
            (h_exists p)
@@ -439,12 +451,6 @@ val id_elim_exists (#a:Type) (p : a -> slprop) (m:mem)
 val slimp_star (p q r s : slprop)
   : Lemma (requires (slimp p q /\ slimp r s))
           (ensures (slimp (p `star` r) (q `star` s)))
-
-let is_frame_monotonic #a (p : a -> slprop) : prop =
-  forall x y m frame. interp (p x `star` frame) m /\ interp (p y) m ==> slimp (p x) (p y)
-
-let witness_invariant #a (p : a -> slprop) =
-  forall x y m. interp (p x) m /\ interp (p y) m ==> x == y
 
 val elim_wi (#a:Type) (p : a -> slprop{witness_invariant p}) (x y : a) (m : mem)
   : Lemma (requires (interp (p x) m /\ interp (p y) m))

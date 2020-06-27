@@ -1075,6 +1075,37 @@ let change_slprop (#opened_invariants:inames)
     in
     lift_tot_action (lift_heap_action opened_invariants (Steel.Heap.change_slprop p q proof))
 
+(* This module reuses is_frame_monotonic from Heap, but does not expose that
+to clients, so we need this lemma to typecheck witness_h_exists below. *)
+let relate_frame_monotonic_1 #a p
+  : Lemma (requires (H.is_frame_monotonic p))
+          (ensures (is_frame_monotonic p))
+  = ()
+
+let relate_frame_monotonic_2 #a p
+  : Lemma (requires (is_frame_monotonic p))
+          (ensures (H.is_frame_monotonic p))
+  =  let aux (x y : a) (h : H.heap) (f : H.slprop) :
+      Lemma (requires (H.interp (p x `H.star` f) h /\ H.interp (p y) h))
+            (ensures (H.slimp (p x) (p y)))
+      =
+        let m = mem_of_heap h in
+        assert (interp (p x `star` f) m);
+        assert (interp (p y)          m);
+        assert (slimp (p x) (p y));
+        let aux2 (h:H.heap) : Lemma (requires H.interp (p x) h) (ensures H.interp (p y) h) =
+          let m = mem_of_heap h in
+          assert (interp (p x) m);
+          assert (interp (p y) m);
+          ()
+        in
+        Classical.forall_intro (Classical.move_requires aux2)
+    in
+    Classical.forall_intro_4 (fun x y h f -> Classical.move_requires (aux x y h) f)
+
+let witness_h_exists #opened_invariants #a p =
+  relate_frame_monotonic_2 p;
+  lift_tot_action (lift_heap_action opened_invariants (H.witness_h_exists p))
 
 let lift_h_exists #opened_invariants p = lift_tot_action (lift_heap_action opened_invariants (H.lift_h_exists p))
 

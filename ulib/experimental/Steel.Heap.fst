@@ -1034,57 +1034,44 @@ let change_slprop (p q:slprop)
     in
     refined_pre_action_as_action g
 
-(** [_witness_h_exists]
+let id_elim_star p q m =
+  let starprop (ml:heap) (mr:heap) =
+      disjoint ml mr
+    /\ m == join ml mr
+    /\ interp p ml
+    /\ interp q mr
+  in
+  elim_star p q m;
+  let p1 : heap -> prop = fun ml -> (exists mr. starprop ml mr) in
+  let ml = IndefiniteDescription.indefinite_description_tot _ p1 in
+  let starpropml mr : prop = starprop ml mr in // this prop annotation seems needed
+  let mr = IndefiniteDescription.indefinite_description_tot _ starpropml in
+  (ml, mr)
 
-    This is an action that is frame-preserving and allows
-    extracting a witness for an existential (using indefinite description).
+let id_elim_exists #a p m =
+  let existsprop (x:a) = interp (p x) m in
+  elim_h_exists p m;
+  let x = IndefiniteDescription.indefinite_description_tot _ existsprop in
+  x
 
-    However, the API provided by the semantics does not yet allow
-    reflecting this as an action, since the way in which it defines
-    frame preservation is different (it doesn't take the frame as an
-    explicit argument).
-
-    We have been discussing revising the signature of actions in
-    semantics to be more like this:
-
-    https://github.com/FStarLang/FStar/blob/nik_steel_locks/examples/steel_wip/ParDiv.fst#L74-L82
-
-    There, frame-preservation of actions is done differently.
-
-    Rather than having a quantified refinement in the postcondition
-    that we have now, i.e.,
-
-```
-    forall (frame:st.hprop).
-      st.interp ((pre `st.star` frame) `st.star` (st.locks_invariant m0)) m0 ==>
-      (st.interp ((post `st.star` frame) `st.star` (st.locks_invariant m1)) m1
-```
-
-    every action takes a frame as an argument and the interpreter
-    carries the current frame as an explicit argument and instantiates
-    it when reaching a leaf action node.
-
-    if that were the style we used for actions, then witness_h_exists
-    would be easy to add as an action.
-
-    The trouble with the current formulation is that in get_witness,
-    we have to pick a witness for h_exists p and then show that
-    whatever witness we picked is good for any frame ... and that
-    seems to be impossible to prove.
-*)
-let _witness_h_exists (a:Type) (p: a -> slprop) (frame:slprop)
-                      (h0:hheap (h_exists p `star` frame))
-    : ( x:erased a & h1:hheap (p x `star` frame) {
-        heap_evolves h0 h1 /\
-        (forall (hp:hprop frame). hp h0 == hp h1) /\
-        (forall ctr. h0 `free_above_addr` ctr ==> h1 `free_above_addr` ctr)
-      })
-    = assert (equiv (h_exists p `star` frame)
-                    (h_exists (fun x -> p x `star` frame)));
-      let w = FStar.IndefiniteDescription.indefinite_description_tot a (fun x -> interp (p x `star` frame) h0) in
-      assert (interp (p w `star` frame) h0);
-      (| w, h0 |)
-
+let witness_h_exists #a p
+  : action (h_exists p) (erased a) (fun x -> p x)
+  = assert (is_frame_monotonic p);
+    let pre : refined_pre_action (h_exists p) (erased a) (fun x -> p x) =
+      fun h0 -> let w = IndefiniteDescription.indefinite_description_tot a (fun x -> interp (p x) h0) in
+             let aux (frame:slprop) : Lemma (requires (interp (h_exists p `star` frame) h0))
+                                            (ensures  (interp (p w `star` frame) h0)) =
+               (* This is the main trick of using frame-monotonic properties, `w` is
+                * good for anything. *)
+                let (hl, hr) = id_elim_star (h_exists p) frame h0 in
+                let w' = id_elim_exists p hl in
+                assert (interp (p w') hl);
+                intro_star (p w') frame hl hr
+             in
+             Classical.forall_intro (Classical.move_requires aux);
+             (| w, h0 |)
+    in
+    refined_pre_action_as_action pre
 
 let lift_h_exists (#a:_) (p:a -> slprop)
   : action (h_exists p) unit
@@ -1109,32 +1096,6 @@ let elim_pure (p:prop)
       = fun h -> (| (), h |)
     in
     refined_pre_action_as_action f
-
-let id_elim_star p q m =
-  let starprop (ml:heap) (mr:heap) =
-      disjoint ml mr
-    /\ m == join ml mr
-    /\ interp p ml
-    /\ interp q mr
-  in
-  elim_star p q m;
-  let p1 : heap -> prop = fun ml -> (exists mr. starprop ml mr) in
-  let ml = IndefiniteDescription.indefinite_description_tot _ p1 in
-  let starpropml mr : prop = starprop ml mr in // this prop annotation seems needed
-  let mr = IndefiniteDescription.indefinite_description_tot _ starpropml in
-  (ml, mr)
-
-let id_elim_exists #a p m =
-  let existsprop (x:a) = interp (p x) m in
-  elim_h_exists p m;
-  let x = IndefiniteDescription.indefinite_description_tot _ existsprop in
-  x
-
-let slimp (p q : slprop) : prop =
-  forall h. interp p h ==> interp q h
-
-let is_frame_monotonic #a (p : a -> slprop) : prop =
-  forall x y h frame. interp (p x `star` frame) h /\ interp (p y) h ==> slimp (p x) (p y)
 
 let pts_to_evolve (#a:Type u#a) (#pcm:_) (r:ref a pcm) (x y : a) (h:heap)
   : Lemma (requires (interp (pts_to r x) h /\ compatible pcm y x))
