@@ -124,7 +124,7 @@ let pts_to_witinv (#a:Type u#0) (r:ref a) (p:perm)
       : Lemma (requires (interp (pts_to r p x) m
                        /\ interp (pts_to r p y) m))
               (ensures x == y)
-      = H.pts_to_witinv' r p
+      = H.pts_to_witinv r p
     in
     Classical.forall_intro (fun x ->
     Classical.forall_intro (fun y ->

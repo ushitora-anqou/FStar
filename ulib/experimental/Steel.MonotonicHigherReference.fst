@@ -225,14 +225,8 @@ let pts_to_body_witness_invariant #a #p (r:ref a p) (f:perm) (v:Ghost.erased a)
        assert (interp (pts_to_body r f v y) m);
        M.pure_interp (history_val x v f) m;
        M.pure_interp (history_val y v f) m;
-       assert (history_val x v f);
-       assert (history_val y v f);
-       assert (hval x == v);
-       assert (hval y == v);
-       assert (interp (M.pts_to r x) m);
-       assert (interp (M.pts_to r y) m);
-       M.pts_to_join r x y m;
-       ()
+       (* They are joinable, so their values match *)
+       M.pts_to_join r x y m
     in
     Classical.forall_intro (fun x ->
     Classical.forall_intro (fun y ->
@@ -335,27 +329,13 @@ let pts_to_is_witness_invariant (#a:Type) (#p:Preorder.preorder a)
        assert (interp (pts_to_body r q y h2) m);
        M.pure_interp (history_val h1 x q) m;
        M.pure_interp (history_val h2 y q) m;
-       assert (history_val h1 x q);
-       assert (history_val h2 y q);
-       assert (hval h1 == x);
-       assert (hval h2 == y);
-       assert (interp (M.pts_to r h1) m);
-       assert (interp (M.pts_to r h2) m);
-       // histories joinable means they have a common hval
-       M.pts_to_join r h1 h2 m;
-       ()
+       (* They are joinable, so their values match *)
+       M.pts_to_join r h1 h2 m
     in
     Classical.forall_intro (fun x ->
     Classical.forall_intro (fun y ->
     Classical.forall_intro (fun m ->
     Classical.move_requires (aux x y) m)))
-
-// plus coercion
-let pts_to_is_witness_invariant' (#a:Type) (#p:Preorder.preorder a)
-    (r:ref a p) (q:perm)
-  : Lemma (witness_invariant (fun (v:a) -> pts_to r q v))
-          [SMTPat (witness_invariant (fun (v:a) -> pts_to r q v))]
-  = pts_to_is_witness_invariant r q
 
 let read_refine (#a:Type) (#q:perm) (#p:Preorder.preorder a) (#f:a -> slprop)
                 (r:ref a p)
@@ -363,7 +343,6 @@ let read_refine (#a:Type) (#q:perm) (#p:Preorder.preorder a) (#f:a -> slprop)
              (fun v -> pts_to r q v `star` f v)
 
   = pts_to_is_witness_invariant r q;
-    pts_to_is_witness_invariant' r q;
     star_is_witinv_left (fun (v:a) -> pts_to r q v) f;
     let v = SB.witness_h_exists () in
     SB.h_assert (pts_to r q v `star` f (Ghost.reveal v));
