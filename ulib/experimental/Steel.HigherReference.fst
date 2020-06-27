@@ -102,6 +102,16 @@ let pts_to_ref_injective
       Mem.pts_to_compatible r (Some (Ghost.reveal v0, p0))
                               (Some (Ghost.reveal v1, p1))
                               m
+                              
+let pts_to_witinv (#a:Type) (r:ref a) (p:perm) : Lemma (witness_invariant (pts_to r p)) =
+  let aux (x y : a) (m:mem)
+    : Lemma (requires (interp (pts_to r p x) m /\ interp (pts_to r p y) m))
+            (ensures  (x == y))
+    =
+    pts_to_join r (Some (Ghost.reveal x, p)) (Some (Ghost.reveal y, p)) m;
+    ()
+  in
+  Classical.forall_intro_3 (fun x y -> Classical.move_requires (aux x y))
 
 let drop (p:slprop)
   : SteelT unit p (fun _ -> emp)
@@ -178,7 +188,8 @@ let read (#a:Type) (#p:perm) (#v:erased a) (r:ref a)
 let read_refine (#a:Type) (#p:perm) (q:a -> slprop) (r:ref a)
   : SteelT a (h_exists (fun (v:a) -> pts_to r p v `star` q v))
              (fun v -> pts_to r p v `star` q v)
-  = let vs = SB.witness_h_exists () in
+  = pts_to_witinv r p;
+    let vs = SB.witness_h_exists () in
     SB.h_assert (pts_to r p vs `star` q vs);
     let v = SB.frame (fun _ -> read #a #p #vs r) _ in
     SB.h_assert (pts_to r p v `star` q v);
@@ -293,13 +304,3 @@ let cas_action (#t:Type) (eq: (x:t -> y:t -> b:bool{b <==> (x == y)}))
                                   (cas_provides r v v_new b)
                                   m0 m1);
      b
-
-let pts_to_witinv (#a:Type) (r:ref a) (p:perm) : Lemma (witness_invariant (pts_to r p)) =
-  let aux (x y : a) (m:mem)
-    : Lemma (requires (interp (pts_to r p x) m /\ interp (pts_to r p y) m))
-            (ensures  (x == y))
-    =
-    pts_to_join r (Some (Ghost.reveal x, p)) (Some (Ghost.reveal y, p)) m;
-    ()
-  in
-  Classical.forall_intro_3 (fun x y -> Classical.move_requires (aux x y))
