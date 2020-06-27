@@ -53,23 +53,6 @@ let change_slprop p q proof = SteelAtomic?.reflect (Steel.Memory.change_slprop p
 open NMSTTotal
 open MSTTotal
 
-let not_affine (p : slprop) = forall m1 m2. interp p m1 ==> interp p m2 ==> m1 == m2
-
-val intro_star_pat (p q:slprop) (mp:hmem p) (mq:hmem q)
-  : Lemma
-    (requires disjoint mp mq)
-    (ensures interp (p `star` q) (join mp mq))
-    [SMTPat (interp (p `star` q) (join mp mq))]
-let intro_star_pat = intro_star
-
-val elim_star_pat (p q:slprop) (m:hmem (p `star` q))
-  : Lemma
-    (requires
-      interp (p `star` q) m)
-    (ensures exists ml mr.
-      disjoint ml mr /\ m == join ml mr /\ interp p ml /\ interp q mr)
-    [SMTPat (interp (p `star` q) m)]
-let elim_star_pat = elim_star
 let witness_h_exists #a #u #p () = SteelAtomic?.reflect (Steel.Memory.witness_h_exists p)
 let lift_h_exists_atomic #a #u p = SteelAtomic?.reflect (Steel.Memory.lift_h_exists #u p)
 let elim_pure #uses p = SteelAtomic?.reflect (Steel.Memory.elim_pure #uses p)
