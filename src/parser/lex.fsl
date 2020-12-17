@@ -77,7 +77,7 @@ let checkExprOp lexbuf =
 let unexpected_char lexbuf =
     raise_err (Errors.Fatal_UnexpectedChar, "Unexpected character '"^(lexeme lexbuf)^"'")
 
-let start_string (lexbuf: Microsoft.FSharp.Text.Lexing.LexBuffer<char> (*UnicodeLexing.Lexbuf*)) =
+let start_string (lexbuf: FSharp.Text.Lexing.LexBuffer<char> (*UnicodeLexing.Lexbuf*)) =
     let buf = Bytes.create 100 in
     let m = getLexerRange  lexbuf in
     let startp = lexbuf.StartPos in
@@ -106,7 +106,7 @@ type delimiters = {
 }
 
 let n_typ_apps = Util.mk_ref 0
-let is_typ_app (args:Lexhelp.lexargs) (lexbuf:Microsoft.FSharp.Text.Lexing.LexBuffer<char> (*UnicodeLexing.Lexbuf*)) =
+let is_typ_app (args:Lexhelp.lexargs) (lexbuf:FSharp.Text.Lexing.LexBuffer<char> (*UnicodeLexing.Lexbuf*)) =
  if not (Options.fs_typ_app args.filename) then ((* printfn "False 0" ; *) false) else
  try
    let char_ok = new System.Text.RegularExpressions.Regex(@"\w|\s|\(|\)|<|>|\*|-|'|,|\.") in

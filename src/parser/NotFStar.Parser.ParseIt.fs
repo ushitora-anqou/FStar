@@ -31,13 +31,13 @@ type input_frag = {
 
 
 
-let resetLexbufPos filename (lexbuf: Microsoft.FSharp.Text.Lexing.LexBuffer<char>) =
+let resetLexbufPos filename (lexbuf: FSharp.Text.Lexing.LexBuffer<char>) =
   lexbuf.EndPos <- {lexbuf.EndPos with
     pos_fname=filename;
     pos_cnum=0;
     pos_lnum=1 }
 
-let setLexbufPos filename (lexbuf: Microsoft.FSharp.Text.Lexing.LexBuffer<char>) line col =
+let setLexbufPos filename (lexbuf: FSharp.Text.Lexing.LexBuffer<char>) line col =
   lexbuf.EndPos <- {lexbuf.EndPos with
     pos_fname=filename;
     pos_cnum=col;
@@ -123,7 +123,7 @@ let parse fn =
         frag.frag_line,
         frag.frag_col  in
 
-  let lexbuf = Microsoft.FSharp.Text.Lexing.LexBuffer<char>.FromTextReader(sr) in
+  let lexbuf = FSharp.Text.Lexing.LexBuffer<char>.FromTextReader(sr) in
   setLexbufPos filename lexbuf line col;
   try
       let lexargs = Lexhelp.mkLexargs ((fun () -> "."), filename,fs) in
@@ -161,7 +161,7 @@ let parse fn =
     | Error(e, msg, r, _) ->
         ParseError(e, msg, r)
     | e ->
-        let pos_of_lexpos (p: Microsoft.FSharp.Text.Lexing.Position) =
+        let pos_of_lexpos (p: FSharp.Text.Lexing.Position) =
             Range.mk_pos p.pos_lnum (p.pos_cnum - p.pos_bol) in
         let p0 = pos_of_lexpos lexbuf.StartPos in
         let p1 = pos_of_lexpos lexbuf.EndPos in
@@ -175,7 +175,7 @@ let parse_warn_error s =
   let user_flags =
     if s = "" then []
     else
-      let lexbuf = Microsoft.FSharp.Text.Lexing.LexBuffer<char>.FromString s in
+      let lexbuf = FSharp.Text.Lexing.LexBuffer<char>.FromString s in
       let lexer lexbuf = LexFStar.token (Lexhelp.mkLexargs ((fun () -> "."), "","")) lexbuf in
         try
           Parse.warn_error_list lexer lexbuf

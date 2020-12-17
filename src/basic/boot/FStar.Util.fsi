@@ -455,8 +455,10 @@ type hints_read_result =
 val write_hints: string -> hints_db -> unit
 val read_hints: string -> hints_read_result
 
+(*
 val json_of_string : string -> option<json>
 val string_of_json : json -> string
+*)
 
 (* Common interface between F#, Ocaml and F* to read and write references *)
 (* F# uses native references, while OCaml uses both native references (Pervasives) and FStar_Heap ones *)

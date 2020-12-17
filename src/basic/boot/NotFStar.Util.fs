@@ -192,7 +192,7 @@ let run_process (id: string) (prog: string) (args: list<string>) (stdin: option<
   stdout ^ stderr
 
 let get_file_extension (fn: string) :string = (Path.GetExtension fn).[1..]
-let is_path_absolute p = System.IO.Path.IsPathRooted(p)
+let is_path_absolute (p:string) = System.IO.Path.IsPathRooted(p)
 let join_paths p0 p1 = System.IO.Path.Combine(p0, p1)
 let normalize_file_path (path:string) = System.IO.Path.GetFullPath(path)
 
@@ -859,10 +859,10 @@ let file_exists f =
 let is_directory f =
   System.IO.Directory.Exists f (* does not raise exceptions *)
 
-let basename f =
+let basename (f:string) =
   System.IO.Path.GetFileName f
 
-let dirname f =
+let dirname (f:string) =
   System.IO.Path.GetDirectoryName f
 
 let print_endline x =
@@ -1128,6 +1128,7 @@ let rec obj_to_json (o: obj) : option<json> =
     | _ -> raise UnsupportedJson in
   try Some (aux o) with UnsupportedJson -> None
 
+(*
 let json_of_string str : option<json> =
   try
     let deserializer = new System.Web.Script.Serialization.JavaScriptSerializer() in
@@ -1140,6 +1141,7 @@ let json_of_string str : option<json> =
 let string_of_json json : string =
   let serializer = new System.Web.Script.Serialization.JavaScriptSerializer() in
   serializer.Serialize (json_to_obj json)
+*)
 
 let read r = !r
 let write r x = r := x
